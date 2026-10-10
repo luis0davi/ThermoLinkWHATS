@@ -537,11 +537,27 @@ function renderDashboardGeral() {
     renderTrafficChart();
 }
 
-async function renderTrafficChart() {
+let isRenderingTrafficChart = false;
+
+async function renderTrafficChart(forcarRecarregamento = false) {
     const canvas = $("trafficChartCanvas");
     if (!canvas) return;
 
-    // Gera os 12 slots de 2 horas para as últimas 24 horas até a hora atual
+    if (isRenderingTrafficChart && !forcarRecarregamento) return;
+    isRenderingTrafficChart = true;
+
+    const reloadIcon = $("trafficReloadIcon");
+    if (reloadIcon) reloadIcon.classList.add("fa-spin");
+
+    const badgeEl = $("trafficTotal24h");
+    const peakBadge = $("trafficPeakBadge");
+    const peakDisplay = $("trafficPeakDisplay");
+
+    if (badgeEl && !badgeEl.textContent.includes("leituras")) {
+        badgeEl.textContent = "Carregando...";
+    }
+
+    // Gera os 12 slots de 2 horas para cobrir perfeitamente as últimas 24 horas até agora
     const now = new Date();
     const intervals = [];
     const labels = [];
@@ -549,67 +565,92 @@ async function renderTrafficChart() {
     for (let i = 11; i >= 0; i--) {
         const slotEnd = new Date(now.getTime() - i * 2 * 3600 * 1000);
         const slotStart = new Date(slotEnd.getTime() - 2 * 3600 * 1000);
-        const hh = String(slotEnd.getHours()).padStart(2, "0");
-        labels.push(`${hh}h`);
-        intervals.push({ start: slotStart, end: slotEnd, count: 0 });
+
+        const hhStart = String(slotStart.getHours()).padStart(2, "0");
+        const hhEnd = String(slotEnd.getHours()).padStart(2, "0");
+
+        labels.push(`${hhEnd}h`);
+        intervals.push({
+            start: slotStart,
+            end: slotEnd,
+            labelStart: `${hhStart}:00`,
+            labelEnd: `${hhEnd}:00`,
+            count: 0
+        });
     }
 
     const start24hIso = new Date(now.getTime() - 24 * 3600 * 1000).toISOString();
     let totalLeituras24h = 0;
     let usaDadosReais = false;
+    let picoMaximo = 0;
+    let picoSlot = "";
 
     try {
         if (typeof sb !== "undefined" && sb) {
-            // Busca data_hora / created_at das leituras registradas nas últimas 24 horas
-            const { data, error, count } = await sb
-                .from("leituras")
-                .select("created_at, data_hora", { count: "exact" })
-                .gte("created_at", start24hIso)
-                .order("created_at", { ascending: true })
-                .limit(5000);
+            // Executa consultas paralelas leves (HEAD count exato sem trafegar payload de dados pesados)
+            const promessasSlots = intervals.map(inv =>
+                sb.from("leituras")
+                    .select("*", { count: "exact", head: true })
+                    .gte("created_at", inv.start.toISOString())
+                    .lt("created_at", inv.end.toISOString())
+            );
 
-            if (!error && data && data.length > 0) {
-                usaDadosReais = true;
-                totalLeituras24h = count || data.length;
+            // Consulta global exata de contagem das últimas 24h
+            const promessaTotal = sb.from("leituras")
+                .select("*", { count: "exact", head: true })
+                .gte("created_at", start24hIso);
 
-                data.forEach(item => {
-                    const rawDate = item.data_hora || item.created_at;
-                    if (!rawDate) return;
-                    const itemTime = new Date(rawDate).getTime();
+            const [respTotal, ...respsSlots] = await Promise.all([promessaTotal, ...promessasSlots]);
 
-                    for (let j = 0; j < intervals.length; j++) {
-                        if (itemTime >= intervals[j].start.getTime() && itemTime <= intervals[j].end.getTime()) {
-                            intervals[j].count++;
-                            break;
-                        }
-                    }
-                });
-            } else if (!error && typeof count === "number") {
-                totalLeituras24h = count;
-            }
+            let somaSlots = 0;
+            respsSlots.forEach((resp, idx) => {
+                const qtd = (!resp.error && typeof resp.count === "number") ? resp.count : 0;
+                intervals[idx].count = qtd;
+                somaSlots += qtd;
+                if (qtd > picoMaximo) {
+                    picoMaximo = qtd;
+                    picoSlot = intervals[idx].labelEnd;
+                }
+            });
+
+            totalLeituras24h = (!respTotal.error && typeof respTotal.count === "number")
+                ? respTotal.count
+                : somaSlots;
+
+            usaDadosReais = true;
         }
     } catch (err) {
         console.warn("Aviso ao buscar tráfego Supabase (leituras 24h):", err);
+    } finally {
+        isRenderingTrafficChart = false;
+        if (reloadIcon) reloadIcon.classList.remove("fa-spin");
     }
 
-    // Se ainda não houver leituras suficientes no banco nas últimas 24h (banco recém-criado),
-    // calcula uma estimativa baseada nos dispositivos e clientes ativos para simular curva natural
-    let trafficData;
-    if (usaDadosReais && intervals.some(inv => inv.count > 0)) {
-        trafficData = intervals.map(inv => inv.count);
-    } else {
+    let trafficData = intervals.map(inv => inv.count);
+
+    // Fallback apenas se o Supabase estiver completamente desconectado da internet
+    if (!usaDadosReais) {
         const baseDevices = (getDevices() || []).filter(d => d.status === "Vinculado").length || 3;
-        // Padrão de curva de queima industrial típica ao longo do dia
         const curveWeights = [0.4, 0.3, 0.35, 0.6, 1.1, 1.6, 1.9, 2.1, 2.0, 1.8, 1.4, 1.2];
-        const baseRate = baseDevices * 240; // ~4 leituras por minuto por forno em 2 horas
+        const baseRate = baseDevices * 240;
         trafficData = curveWeights.map(w => Math.round(baseRate * w));
         totalLeituras24h = trafficData.reduce((acc, v) => acc + v, 0);
+        picoMaximo = Math.max(...trafficData);
     }
 
-    // Atualiza o badge no topo do painel
-    const badgeEl = $("trafficTotal24h");
+    // Atualiza o badge de total no topo do painel
     if (badgeEl) {
         badgeEl.textContent = `${totalLeituras24h.toLocaleString("pt-BR")} leituras`;
+    }
+
+    // Exibe o badge dinâmico de Pico Máximo
+    if (peakBadge && peakDisplay) {
+        if (picoMaximo > 0) {
+            peakDisplay.textContent = `Pico: ${picoMaximo.toLocaleString("pt-BR")}${picoSlot ? ` (${picoSlot})` : ''}`;
+            peakBadge.style.display = "inline-flex";
+        } else {
+            peakBadge.style.display = "none";
+        }
     }
 
     if (adminState.trafficChart) {
@@ -619,9 +660,15 @@ async function renderTrafficChart() {
 
     const ctx = canvas.getContext("2d");
     const grad = ctx.createLinearGradient(0, 0, 0, 260);
-    grad.addColorStop(0, "rgba(249, 115, 22, 0.40)");
-    grad.addColorStop(0.7, "rgba(249, 115, 22, 0.08)");
+    grad.addColorStop(0, "rgba(249, 115, 22, 0.45)");
+    grad.addColorStop(0.7, "rgba(249, 115, 22, 0.10)");
     grad.addColorStop(1, "rgba(249, 115, 22, 0.0)");
+
+    // Destaque visual especial para o ponto do Pico Máximo no gráfico
+    const maxVal = Math.max(...trafficData, 1);
+    const pointColors = trafficData.map(v => v === maxVal && v > 0 ? "#ef4444" : "#f97316");
+    const pointRadii = trafficData.map(v => v === maxVal && v > 0 ? 6.5 : 3.5);
+    const pointHoverRadii = trafficData.map(v => v === maxVal && v > 0 ? 9.5 : 7);
 
     adminState.trafficChart = new Chart(canvas, {
         type: "line",
@@ -631,15 +678,15 @@ async function renderTrafficChart() {
                 label: "Leituras Processadas no Banco",
                 data: trafficData,
                 borderColor: "#f97316",
-                borderWidth: 2.5,
+                borderWidth: 2.8,
                 backgroundColor: grad,
-                tension: 0.38,
+                tension: 0.35,
                 fill: true,
-                pointRadius: 3,
-                pointHoverRadius: 7,
-                pointBackgroundColor: "#f97316",
+                pointBackgroundColor: pointColors,
                 pointBorderColor: "#07121f",
-                pointBorderWidth: 2
+                pointBorderWidth: 2,
+                pointRadius: pointRadii,
+                pointHoverRadius: pointHoverRadii
             }]
         },
         options: {
@@ -655,12 +702,27 @@ async function renderTrafficChart() {
                     backgroundColor: "rgba(7, 18, 31, 0.95)",
                     titleColor: "#ffffff",
                     bodyColor: "#fdba74",
-                    borderColor: "rgba(249, 115, 22, 0.3)",
+                    borderColor: "rgba(249, 115, 22, 0.35)",
                     borderWidth: 1,
                     padding: 12,
                     cornerRadius: 10,
                     callbacks: {
-                        label: (c) => `🔥 ${c.parsed.y.toLocaleString("pt-BR")} leituras no intervalo`
+                        title: (items) => {
+                            const idx = items[0].dataIndex;
+                            const inv = intervals[idx];
+                            return inv ? `⏰ Intervalo: ${inv.labelStart} às ${inv.labelEnd}` : items[0].label;
+                        },
+                        label: (c) => {
+                            const val = c.parsed.y;
+                            const isPico = val === picoMaximo && picoMaximo > 0;
+                            const icon = isPico ? "🔥 [PICO MÁXIMO]" : "📊";
+                            return `${icon} ${val.toLocaleString("pt-BR")} leituras`;
+                        },
+                        afterLabel: (c) => {
+                            const val = c.parsed.y;
+                            const porMin = (val / 120).toFixed(1);
+                            return `⚡ Ritmo Médio: ~${porMin} leituras/minuto`;
+                        }
                     }
                 }
             },

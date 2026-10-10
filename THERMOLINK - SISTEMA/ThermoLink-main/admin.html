@@ -250,17 +250,24 @@
                         <div class="panel-header">
                             <div>
                                 <h3>Volume de Leituras Trafegadas (24 Horas)</h3>
-                                <p>Monitoramento de chamadas e consumo do banco de dados Supabase</p>
+                                <p>Monitoramento de chamadas e telemetria contínua dos fornos via Supabase</p>
                             </div>
                             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                                <div class="tag-pill" id="trafficStatsBadge" title="Total de leituras nas últimas 24 horas">
+                                <div class="tag-pill" id="trafficStatsBadge" title="Total de leituras reais nas últimas 24 horas">
                                     <i class="fa-solid fa-database" style="color: var(--orange); margin-right: 4px;"></i>
                                     <span id="trafficTotal24h">Calculando...</span>
                                 </div>
-                                <div class="tag-pill tag-pill-orange">
+                                <div class="tag-pill" id="trafficPeakBadge" title="Maior pico de leituras registrado no período" style="display: none; background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.3); color: #fca5a5;">
+                                    <i class="fa-solid fa-fire" style="color: #ef4444; margin-right: 4px;"></i>
+                                    <span id="trafficPeakDisplay">Pico: --</span>
+                                </div>
+                                <div class="tag-pill tag-pill-orange" title="Telemetria conectada ao Supabase">
                                     <span class="live-dot-green" style="margin-right: 4px;"></span>
                                     <span>Tempo Real</span>
                                 </div>
+                                <button class="btn-icon-subtle" onclick="renderTrafficChart(true)" title="Recarregar dados do gráfico em tempo real" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #94a3b8; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
+                                    <i class="fa-solid fa-rotate" id="trafficReloadIcon"></i>
+                                </button>
                             </div>
                         </div>
                         <div class="traffic-chart-wrapper">
