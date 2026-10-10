@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ThermoLink • Gestão WhatsApp & Relatórios Diários</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <style>
+    :root {
+      --bg-dark: #070d17;
+      --card-bg: #0d1829;
+      --card-border: #1e293b;
+      --card-hover: #132238;
+      --orange: #f97316;
+      --orange-glow: rgba(249, 115, 22, 0.25);
+      --green: #10b981;
+      --green-glow: rgba(16, 185, 129, 0.25);
+      --red: #ef4444;
+      --yellow: #f59e0b;
+      --blue: #38bdf8;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+    }
+
+    .container { max-width: 1240px; margin: 0 auto; width: 100%; }
+
+    /* HEADER */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 28px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    .brand-group { display: flex; align-items: center; gap: 16px; }
+
+    .brand-icon {
+      width: 52px; height: 52px;
+      background: linear-gradient(135deg, #f97316, #ea580c);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px; color: white;
+      box-shadow: 0 4px 14px var(--orange-glow);
+    }
+
+    .brand-title h1 {
+      font-size: 20px; font-weight: 800; color: white;
+      display: flex; align-items: center; gap: 10px;
+    }
+
+    .brand-title p { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+    .header-actions { display: flex; align-items: center; gap: 14px; }
+
+    .badge-status {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 16px; border-radius: 20px;
+      font-size: 13px; font-weight: 700;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+    }
+
+    .badge-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--text-muted); }
+
+    .badge-status.conectado {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: rgba(16, 185, 129, 0.3);
+      color: #34d399;
+    }
+    .badge-status.conectado .badge-dot {
+      background: #34d399;
+      box-shadow: 0 0 10px #34d399;
+    }
+
+    .badge-status.aguardando {
+      background: rgba(245, 158, 11, 0.15);
+      border-color: rgba(245, 158, 11, 0.3);
+      color: #fbbf24;
+    }
+    .badge-status.aguardando .badge-dot {
+      background: #fbbf24;
+      animation: pulse 1.5s infinite;
+    }
+
+    .badge-status.desconectado {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: #f87171;
+    }
+    .badge-status.desconectado .badge-dot { background: #f87171; }
+
+    @keyframes pulse {
+      0% { opacity: 0.4; transform: scale(0.9); }
+      50% { opacity: 1; transform: scale(1.1); }
+      100% { opacity: 0.4; transform: scale(0.9); }
+    }
+
+    /* STATS KPI BAR */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 900px) {
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .kpi-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .kpi-icon {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    .kpi-icon.green { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+    .kpi-icon.orange { background: rgba(249, 115, 22, 0.15); color: #fb923c; }
+    .kpi-icon.blue { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
+    .kpi-icon.purple { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
+
+    .kpi-data h4 { font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.5px; }
+    .kpi-data p { font-size: 18px; font-weight: 800; color: white; margin-top: 2px; }
+
+    /* LAYOUT DUAS COLUNAS */
+    .layout-grid {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 1024px) {
+      .layout-grid { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+      margin-bottom: 24px;
+    }
+
+    .card-title {
+      font-size: 16px; font-weight: 700; color: white;
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 18px; border-bottom: 1px solid var(--card-border);
+      padding-bottom: 14px;
+    }
+
+    .card-title-left { display: flex; align-items: center; gap: 10px; }
+
+    /* TABELA DE CONTATOS */
+    .table-container {
+      overflow-x: auto;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      background: #091322;
+    }
+
+    table {
+      width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;
+    }
+
+    th {
+      background: #0d1a2d; color: var(--text-muted);
+      font-weight: 700; font-size: 11px; text-transform: uppercase;
+      padding: 12px 16px; border-bottom: 1px solid var(--card-border);
+    }
+
+    td {
+      padding: 12px 16px; border-bottom: 1px solid #14233a; color: white; vertical-align: middle;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+    .tag-ceramica {
+      display: inline-block; padding: 4px 10px;
+      border-radius: 6px; font-size: 12px; font-weight: 600;
+      background: rgba(56, 189, 248, 0.15); color: #7dd3fc;
+    }
+
+    .phone-link {
+      color: #34d399; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;
+    }
+    .phone-link:hover { text-decoration: underline; }
+
+    .action-btn-group { display: flex; align-items: center; gap: 8px; }
+
+    .btn-action-send {
+      background: rgba(249, 115, 22, 0.15); color: var(--orange);
+      border: 1px solid rgba(249, 115, 22, 0.3); border-radius: 8px;
+      padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;
+    }
+    .btn-action-send:hover {
+      background: var(--orange); color: white;
+    }
+
+    .btn-icon {
+      background: transparent; border: none; color: var(--text-muted);
+      padding: 6px 8px; font-size: 14px; cursor: pointer; border-radius: 6px;
+    }
+    .btn-icon:hover { color: #f87171; background: rgba(239, 68, 68, 0.1); }
+
+    /* SWITCH TOGGLE */
+    .switch {
+      position: relative; display: inline-block; width: 38px; height: 22px;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #334155; transition: .3s; border-radius: 22px;
+    }
+    .slider:before {
+      position: absolute; content: ""; height: 16px; width: 16px;
+      left: 3px; bottom: 3px; background-color: white;
+      transition: .3s; border-radius: 50%;
+    }
+    input:checked + .slider { background-color: var(--green); }
+    input:checked + .slider:before { transform: translateX(16px); }
+
+    /* FORM & BUTTONS */
+    .btn-primary {
+      background: linear-gradient(135deg, #f97316, #ea580c);
+      color: white; border: none; padding: 10px 18px; border-radius: 10px;
+      font-size: 13px; font-weight: 700; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 8px;
+      box-shadow: 0 4px 14px var(--orange-glow); transition: all 0.2s;
+    }
+    .btn-primary:hover { transform: translateY(-1px); }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08); color: white;
+      border: 1px solid var(--card-border); padding: 10px 18px; border-radius: 10px;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s;
+    }
+    .btn-secondary:hover { background: rgba(255, 255, 255, 0.14); }
+
+    .form-group { margin-bottom: 14px; }
+    .form-group label {
+      display: block; font-size: 11px; font-weight: 700;
+      text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;
+    }
+    .form-control {
+      width: 100%; background: #091322; border: 1px solid var(--card-border);
+      border-radius: 10px; padding: 10px 12px; color: white; font-family: inherit;
+      font-size: 13px; outline: none;
+    }
+    .form-control:focus {
+      border-color: var(--orange); box-shadow: 0 0 0 3px var(--orange-glow);
+    }
+
+    /* CARD AGENDADOR */
+    .cron-card-box {
+      background: #091322; border: 1px solid #1a2c47; border-radius: 12px;
+      padding: 16px; margin-bottom: 16px;
+    }
+
+    .cron-row {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;
+    }
+
+    /* PREVIEW BOX */
+    .preview-box {
+      background: #060c16; border: 1px solid #1a2a42; border-radius: 12px;
+      padding: 14px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px;
+      color: #93c5fd; line-height: 1.5; max-height: 220px; overflow-y: auto;
+      white-space: pre-wrap; word-break: break-word; margin-bottom: 14px;
+    }
+
+    /* LOGS */
+    .logs-container {
+      background: #050a12; border: 1px solid var(--card-border); border-radius: 12px;
+      padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      height: 170px; overflow-y: auto;
+    }
+    .log-entry { padding: 4px 0; border-bottom: 1px solid #0f1c2e; display: flex; gap: 8px; }
+    .log-time { color: #64748b; }
+    .log-entry.info .log-msg { color: #94a3b8; }
+    .log-entry.success .log-msg { color: #34d399; }
+    .log-entry.warn .log-msg { color: #fbbf24; }
+    .log-entry.error .log-msg { color: #f87171; }
+
+    /* MODAL */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+      display: none; align-items: center; justify-content: center; z-index: 9999;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-card {
+      background: var(--card-bg); border: 1px solid var(--card-border);
+      border-radius: 16px; padding: 24px; width: 100%; max-width: 480px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+    }
+
+    /* TOAST */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px; padding: 14px 20px;
+      border-radius: 10px; font-size: 13px; font-weight: 600;
+      display: flex; align-items: center; gap: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4); z-index: 10000;
+      opacity: 0; transform: translateY(20px); transition: all 0.3s;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.success { background: #064e3b; color: #a7f3d0; border: 1px solid #059669; }
+    .toast.error { background: #450a0a; color: #fecaca; border: 1px solid #dc2626; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- CABEÇALHO -->
+  <header class="header">
+    <div class="brand-group">
+      <div class="brand-icon">
+        <i class="fa-solid fa-fire-flame-curved"></i>
+      </div>
+      <div class="brand-title">
+        <h1>ThermoLink WhatsApp Gateway & Relatórios</h1>
+        <p>Automação Diária de Telemetria Industrial para Clientes • Baileys Engine</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <div id="statusBadge" class="badge-status conectado">
+        <div class="badge-dot"></div>
+        <span id="statusText">Conectado</span>
+      </div>
+      <button class="btn-secondary" onclick="dispararParaTodos()" title="Disparar relatório diário agora para todos os contatos ativos">
+        <i class="fa-solid fa-paper-plane text-orange"></i>
+        <span>Disparar Todos Agora</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- KPI BAR -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-icon green"><i class="fa-brands fa-whatsapp"></i></div>
+      <div class="kpi-data">
+        <h4>Status do Gateway</h4>
+        <p id="kpiStatus">Conectado</p>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon orange"><i class="fa-solid fa-users"></i></div>
+      <div class="kpi-data">
+        <h4>Contatos Cadastrados</h4>
+        <p id="kpiContatosCount">0</p>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon blue"><i class="fa-solid fa-clock"></i></div>
+      <div class="kpi-data">
+        <h4>Horário Diário</h4>
+        <p id="kpiHorarioDiario">18:00</p>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon purple"><i class="fa-solid fa-check-double"></i></div>
+      <div class="kpi-data">
+        <h4>Disparados Hoje</h4>
+        <p id="kpiDisparadosHoje">0</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CARD DE CONEXÃO & QR CODE AO VIVO -->
+  <div class="card" id="cardConexaoWhatsapp" style="margin-bottom: 24px; border: 1px solid #1e3a5f;">
+    <!-- Estado: Aguardando QR Code -->
+    <div id="blocoQrCode" style="display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap;">
+      <div style="max-width: 520px;">
+        <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 12px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; font-size: 12px; font-weight: 700; margin-bottom: 10px;">
+          <i class="fa-solid fa-qrcode"></i> Leitura de QR Code Necessária
+        </div>
+        <h3 style="color: white; font-size: 20px; margin-bottom: 8px;">Conecte o WhatsApp do ThermoLink</h3>
+        <p style="color: var(--text-muted); font-size: 13.5px; line-height: 1.7; margin-bottom: 16px;">
+          1. Abra o WhatsApp no smartphone que enviará os relatórios.<br>
+          2. Toque nos <b>3 pontinhos</b> (ou Ajustes) ➡️ <b>Aparelhos conectados</b>.<br>
+          3. Toque em <b>Conectar um aparelho</b> e aponte a câmera para o QR Code ao lado.
+        </p>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button class="btn-primary" onclick="forcarNovoQrCode()">
+            <i class="fa-solid fa-rotate-right"></i> Gerar Novo QR Code
+          </button>
+        </div>
+      </div>
+
+      <!-- Imagem do QR Code -->
+      <div style="background: white; padding: 14px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; min-width: 220px; min-height: 220px;">
+        <img id="imgQrCode" src="" alt="QR Code WhatsApp" style="width: 200px; height: 200px; object-fit: contain; display: none;">
+        <div id="loadingQrCode" style="text-align: center; color: #64748b; font-size: 12px;">
+          <i class="fa-solid fa-spinner fa-spin" style="font-size: 32px; color: var(--orange); margin-bottom: 10px;"></i>
+          <p>Carregando QR Code...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Estado: Conectado -->
+    <div id="blocoConectado" style="display: none; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
+      <div style="display: flex; align-items: center; gap: 16px;">
+        <div style="width: 56px; height: 56px; border-radius: 14px; background: rgba(16, 185, 129, 0.2); border: 2px solid #10b981; display: flex; align-items: center; justify-content: center; font-size: 28px; color: #10b981;">
+          <i class="fa-solid fa-check"></i>
+        </div>
+        <div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <b style="color: white; font-size: 17px;">WhatsApp Conectado com Sucesso!</b>
+            <span class="badge-status conectado" style="padding: 4px 10px; font-size: 11px;">Operacional</span>
+          </div>
+          <p style="color: #34d399; font-size: 16px; font-weight: 800; margin-top: 4px;" id="dispNumeroConectado">+55 ...</p>
+          <p style="color: var(--text-muted); font-size: 12px; margin-top: 2px;">
+            Sessão ativa e autenticada. Os relatórios diários de queima são enviados a partir deste chip.
+          </p>
+        </div>
+      </div>
+
+      <button class="btn-secondary" onclick="desconectarWhatsApp()" style="border-color: rgba(239, 68, 68, 0.4); color: #f87171;">
+        <i class="fa-solid fa-arrow-right-from-bracket"></i> Desconectar / Trocar Chip
+      </button>
+    </div>
+  </div>
+
+  <!-- CONTEÚDO PRINCIPAL -->
+  <div class="layout-grid">
+
+    <!-- COLUNA PRINCIPAL: GESTÃO DE CONTATOS POR CERÂMICA -->
+    <div>
+      <div class="card">
+        <div class="card-title">
+          <div class="card-title-left">
+            <i class="fa-solid fa-address-book text-orange"></i>
+            <span>Contatos de WhatsApp Vinculados por Cerâmica</span>
+          </div>
+          <button class="btn-primary" onclick="abrirModalNovoContato()">
+            <i class="fa-solid fa-user-plus"></i>
+            <span>+ Novo Contato</span>
+          </button>
+        </div>
+
+        <div id="containerCardsCeramicas" style="display: flex; flex-direction: column; gap: 16px; margin-top: 10px;">
+          <div style="text-align: center; color: var(--text-muted); padding: 32px;">
+            <i class="fa-solid fa-spinner fa-spin text-orange" style="font-size: 24px; margin-bottom: 8px;"></i>
+            <p>Carregando cerâmicas e contatos...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- HISTÓRICO DE LOGS -->
+      <div class="card">
+        <div class="card-title">
+          <div class="card-title-left">
+            <i class="fa-solid fa-terminal" style="color: var(--blue);"></i>
+            <span>Log de Transmissões e Eventos</span>
+          </div>
+          <button onclick="carregarStatus()" class="btn-icon" title="Atualizar">
+            <i class="fa-solid fa-rotate-right"></i>
+          </button>
+        </div>
+        <div id="logsBox" class="logs-container">
+          <div class="log-entry info">
+            <span class="log-time">--:--:--</span>
+            <span class="log-msg">Carregando logs...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COLUNA LATERAL: CONFIGURAÇÕES DO AGENDADOR & PREVIEW -->
+    <div>
+
+      <!-- AUTOMAÇÃO DIÁRIA -->
+      <div class="card">
+        <div class="card-title">
+          <div class="card-title-left">
+            <i class="fa-solid fa-robot text-orange"></i>
+            <span>Automação Diária</span>
+          </div>
+        </div>
+
+        <div class="cron-card-box">
+          <div class="cron-row">
+            <div>
+              <b style="font-size: 13px; color: white;">Envio Automático</b>
+              <p style="font-size: 11px; color: var(--text-muted);">Dispara resumo todo dia</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="checkEnvioAuto" onchange="salvarConfiguracao()">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label>Horário do Disparo Diário</label>
+            <div style="display: flex; gap: 8px;">
+              <input type="time" id="inputHorarioDiario" class="form-control" value="18:00">
+              <button class="btn-secondary" onclick="salvarConfiguracao()" style="padding: 0 14px;">Salvar</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="font-size: 12px; color: var(--text-muted); line-height: 1.5; padding: 4px;">
+          <i class="fa-solid fa-shield-halved text-green"></i> <b>Anti-ban Ativado:</b> Intervalo automático de 6s entre cada envio para proteger o número do WhatsApp da empresa.
+        </div>
+      </div>
+
+      <!-- PRÉVIA DO RELATÓRIO -->
+      <div class="card">
+        <div class="card-title">
+          <div class="card-title-left">
+            <i class="fa-solid fa-file-invoice text-orange"></i>
+            <span>Prévia do Relatório</span>
+          </div>
+          <select id="selectPreviewCeramica" class="form-control" style="width: auto; padding: 4px 8px; font-size: 11px;" onchange="carregarPreview()">
+            <option value="">Carregando...</option>
+          </select>
+        </div>
+
+        <div id="boxPreviewTexto" class="preview-box">Gerando prévia...</div>
+
+        <div class="form-group">
+          <label>Testar Envio Avulso para Qualquer Número</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="inputTelefoneAvulso" class="form-control" placeholder="DDD + Número (ex: 88999998888)">
+            <button class="btn-primary" onclick="enviarRelatorioAvulso()" style="white-space: nowrap;">
+              <i class="fa-brands fa-whatsapp"></i> Enviar
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+<!-- MODAL CADASTRAR / EDITAR CONTATO -->
+<div id="modalContato" class="modal-overlay">
+  <div class="modal-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+      <h3 id="modalTitulo" style="color: white; font-size: 18px;">Novo Contato WhatsApp</h3>
+      <button class="btn-icon" onclick="fecharModalContato()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <form onsubmit="salvarContato(event)">
+      <input type="hidden" id="formContatoId">
+
+      <div class="form-group">
+        <label>Cerâmica Cliente</label>
+        <select id="formCeramicaId" class="form-control" required></select>
+      </div>
+
+      <div class="form-group">
+        <label>Nome do Responsável / Contato</label>
+        <input type="text" id="formNome" class="form-control" placeholder="Ex: André Rolim" required>
+      </div>
+
+      <div class="form-group">
+        <label>Cargo / Função</label>
+        <input type="text" id="formCargo" class="form-control" placeholder="Ex: Proprietário, Encarregado, Forneiro" required>
+      </div>
+
+      <div class="form-group">
+        <label>Número do WhatsApp (com DDD)</label>
+        <input type="text" id="formTelefone" class="form-control" placeholder="Ex: 88994463836" required>
+      </div>
+
+      <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-top: 14px;">
+        <label class="switch">
+          <input type="checkbox" id="formReceberRelatorio" checked>
+          <span class="slider"></span>
+        </label>
+        <span style="font-size: 13px; color: white;">Receber Relatório Diário de Queima</span>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px;">
+        <button type="button" class="btn-secondary" onclick="fecharModalContato()">Cancelar</button>
+        <button type="submit" class="btn-primary">Salvar Contato</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="toast">
+  <i id="toastIcon" class="fa-solid fa-check"></i>
+  <span id="toastMsg">Mensagem enviada com sucesso!</span>
+</div>
+
+<script>
+  let ceramicas = [];
+  let contatos = [];
+  let config = {};
+
+  function mostrarToast(msg, tipo = 'success') {
+    const t = document.getElementById('toast');
+    const msgEl = document.getElementById('toastMsg');
+    const iconEl = document.getElementById('toastIcon');
+
+    msgEl.textContent = msg;
+    t.className = `toast show ${tipo}`;
+    iconEl.className = tipo === 'success' ? 'fa-solid fa-circle-check' : 'fa-solid fa-circle-exclamation';
+
+    setTimeout(() => { t.className = 'toast'; }, 4000);
+  }
+
+  async function carregarCeramicas() {
+    try {
+      const res = await fetch('/api/ceramicas');
+      const data = await res.json();
+      ceramicas = data.ceramicas || [];
+
+      // Popula selects
+      const selPreview = document.getElementById('selectPreviewCeramica');
+      const selForm = document.getElementById('formCeramicaId');
+      selPreview.innerHTML = '';
+      selForm.innerHTML = '';
+
+      ceramicas.forEach(c => {
+        const o1 = document.createElement('option');
+        o1.value = c.id;
+        o1.textContent = c.nome;
+        selPreview.appendChild(o1);
+
+        const o2 = document.createElement('option');
+        o2.value = c.id;
+        o2.textContent = `${c.nome} (${c.cidade || ''})`;
+        selForm.appendChild(o2);
+      });
+
+      carregarPreview();
+    } catch (e) {
+      console.warn('Erro ao carregar cerâmicas:', e);
+    }
+  }
+
+  async function carregarContatos() {
+    try {
+      const res = await fetch('/api/contatos');
+      const data = await res.json();
+      contatos = data.contatos || [];
+      renderizarTabelaContatos();
+    } catch (e) {
+      console.warn('Erro ao carregar contatos:', e);
+    }
+  }
+
+  function renderizarTabelaContatos() {
+    const container = document.getElementById('containerCardsCeramicas');
+    document.getElementById('kpiContatosCount').textContent = contatos.length;
+
+    // Se as cerâmicas ainda não carregaram, usa as cerâmicas dos contatos ou fallback
+    let listaCeramicas = ceramicas;
+    if (!listaCeramicas || listaCeramicas.length === 0) {
+      const ids = [...new Set(contatos.map(c => c.ceramica_id))];
+      listaCeramicas = ids.map(id => {
+        const c = contatos.find(x => x.ceramica_id === id);
+        return { id, nome: c?.ceramica_nome || 'Cerâmica', cidade: '' };
+      });
+    }
+
+    if (listaCeramicas.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; color: var(--text-muted); padding: 32px; background: rgba(0,0,0,0.2); border-radius: 12px;">
+          Nenhuma cerâmica cliente cadastrada.
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = listaCeramicas.map(cer => {
+      const contatosDesta = contatos.filter(c => c.ceramica_id === cer.id);
+      const qtd = contatosDesta.length;
+
+      return `
+        <div style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 18px; margin-bottom: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 12px; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                <i class="fa-solid fa-industry"></i>
+              </div>
+              <div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <h4 style="color: white; font-size: 16px; margin: 0; font-weight: 800;">${escapeHtml(cer.nome)}</h4>
+                  <span style="background: rgba(255,255,255,0.05); color: #94a3b8; font-size: 11px; padding: 2px 8px; border-radius: 10px;">
+                    ${qtd} ${qtd === 1 ? 'contato' : 'contatos'}
+                  </span>
+                </div>
+                <span style="color: var(--text-muted); font-size: 12px;">
+                  <i class="fa-solid fa-location-dot" style="margin-right: 4px;"></i> ${escapeHtml(cer.cidade || 'Não informada')}
+                </span>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <button class="btn-primary" onclick="abrirModalNovoContato('${cer.id}')" style="padding: 6px 12px; font-size: 12px;">
+                <i class="fa-solid fa-plus"></i> + Adicionar Contato para esta Cerâmica
+              </button>
+              <button class="btn-secondary" onclick="dispararParaCeramica('${cer.id}')" style="padding: 6px 12px; font-size: 12px; color: #34d399; border-color: rgba(16, 185, 129, 0.3);" title="Disparar relatório desta cerâmica para todos os números dela">
+                <i class="fa-solid fa-paper-plane"></i> Disparar para esta Cerâmica
+              </button>
+            </div>
+          </div>
+
+          ${qtd === 0 ? `
+            <div style="padding: 20px; text-align: center; background: rgba(0,0,0,0.2); border-radius: 10px; border: 1px dashed rgba(255,255,255,0.1);">
+              <p style="color: var(--text-muted); font-size: 13px;">Nenhum contato cadastrado para <b>${escapeHtml(cer.nome)}</b>.</p>
+              <button class="btn-primary" onclick="abrirModalNovoContato('${cer.id}')" style="margin-top: 10px; padding: 6px 12px; font-size: 12px;">
+                <i class="fa-solid fa-user-plus"></i> Cadastrar Primeiro Número
+              </button>
+            </div>
+          ` : `
+            <div class="table-container" style="margin-top: 0;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Nome do Contato</th>
+                    <th>Cargo / Função</th>
+                    <th>WhatsApp</th>
+                    <th style="text-align: center;">Recebe Diário</th>
+                    <th style="text-align: right;">Ações de Envio</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${contatosDesta.map(c => `
+                    <tr>
+                      <td><b>${escapeHtml(c.nome)}</b></td>
+                      <td style="color: var(--text-muted);">${escapeHtml(c.cargo || 'Responsável')}</td>
+                      <td>
+                        <a href="https://wa.me/${c.telefone}" target="_blank" class="phone-link">
+                          <i class="fa-brands fa-whatsapp"></i> +${escapeHtml(c.telefone)}
+                        </a>
+                      </td>
+                      <td style="text-align: center;">
+                        <label class="switch">
+                          <input type="checkbox" ${c.receber_relatorio ? 'checked' : ''} onchange="toggleRelatorioContato('${c.id}')">
+                          <span class="slider"></span>
+                        </label>
+                      </td>
+                      <td style="text-align: right;">
+                        <div class="action-btn-group" style="justify-content: flex-end;">
+                          <button class="btn-action-send" onclick="dispararIndividual('${c.id}')" title="Enviar relatório deste cliente para este número agora">
+                            <i class="fa-solid fa-paper-plane"></i> Enviar Agora
+                          </button>
+                          <button class="btn-icon" onclick="editarContato('${c.id}')" title="Editar"><i class="fa-solid fa-pen"></i></button>
+                          <button class="btn-icon" onclick="excluirContato('${c.id}')" title="Excluir"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          `}
+        </div>
+      `;
+    }).join('');
+  }
+
+  async function carregarPreview() {
+    const ceramicaId = document.getElementById('selectPreviewCeramica').value;
+    const box = document.getElementById('boxPreviewTexto');
+    try {
+      const res = await fetch('/api/preview-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ceramicaId, modo: 'real' })
+      });
+      const data = await res.json();
+      box.textContent = data.texto || 'Prévia indisponível.';
+    } catch (e) {
+      box.textContent = 'Erro ao carregar prévia.';
+    }
+  }
+
+  async function carregarStatus() {
+    try {
+      const res = await fetch('/api/status');
+      const data = await res.json();
+
+      const badge = document.getElementById('statusBadge');
+      const text = document.getElementById('statusText');
+      const kpiStatus = document.getElementById('kpiStatus');
+
+      const bQr = document.getElementById('blocoQrCode');
+      const bConn = document.getElementById('blocoConectado');
+      const imgQr = document.getElementById('imgQrCode');
+      const loadQr = document.getElementById('loadingQrCode');
+      const dispNum = document.getElementById('dispNumeroConectado');
+
+      if (data.status === 'CONECTADO') {
+        badge.className = 'badge-status conectado';
+        const num = data.user?.id ? data.user.id.split(':')[0] : 'Conectado';
+        text.textContent = `Conectado (+${num})`;
+        kpiStatus.textContent = `+${num}`;
+        if (bQr) bQr.style.display = 'none';
+        if (bConn) bConn.style.display = 'flex';
+        if (dispNum) dispNum.textContent = `+${num}`;
+      } else if (data.status === 'AGUARDANDO_QR') {
+        badge.className = 'badge-status aguardando';
+        text.textContent = 'Aguardando QR Code';
+        kpiStatus.textContent = 'Escanear QR';
+        if (bQr) bQr.style.display = 'flex';
+        if (bConn) bConn.style.display = 'none';
+        if (data.qrCodeDataUrl) {
+          if (imgQr) {
+            if (imgQr.src !== data.qrCodeDataUrl) imgQr.src = data.qrCodeDataUrl;
+            imgQr.style.display = 'block';
+          }
+          if (loadQr) loadQr.style.display = 'none';
+        }
+      } else {
+        badge.className = 'badge-status desconectado';
+        text.textContent = 'Iniciando...';
+        kpiStatus.textContent = 'Iniciando';
+        if (bQr) bQr.style.display = 'flex';
+        if (bConn) bConn.style.display = 'none';
+        if (imgQr) imgQr.style.display = 'none';
+        if (loadQr) {
+          loadQr.style.display = 'block';
+          loadQr.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="font-size:32px; color:var(--orange); margin-bottom:10px;"></i><p>Iniciando WhatsApp e gerando QR Code...</p>`;
+        }
+      }
+
+      if (data.config) {
+        config = data.config;
+        document.getElementById('checkEnvioAuto').checked = Boolean(config.envio_automatico_ativo);
+        document.getElementById('inputHorarioDiario').value = config.horario_envio_diario || '18:00';
+        document.getElementById('kpiHorarioDiario').textContent = config.horario_envio_diario || '18:00';
+        document.getElementById('kpiDisparadosHoje').textContent = config.total_enviados_hoje || 0;
+      }
+
+      if (data.logs && data.logs.length > 0) {
+        document.getElementById('logsBox').innerHTML = data.logs.map(l => `
+          <div class="log-entry ${l.tipo}">
+            <span class="log-time">[${l.horario}]</span>
+            <span class="log-msg">${escapeHtml(l.mensagem)}</span>
+          </div>
+        `).join('');
+      }
+    } catch (e) {
+      console.warn('Erro ao atualizar status:', e);
+    }
+  }
+
+  async function salvarConfiguracao() {
+    const envio_automatico_ativo = document.getElementById('checkEnvioAuto').checked;
+    const horario_envio_diario = document.getElementById('inputHorarioDiario').value;
+
+    try {
+      const res = await fetch('/api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ envio_automatico_ativo, horario_envio_diario })
+      });
+      const data = await res.json();
+      if (data.success) {
+        mostrarToast('Configuração de disparo diário salva!', 'success');
+        carregarStatus();
+      }
+    } catch (e) {
+      mostrarToast('Falha ao salvar configuração.', 'error');
+    }
+  }
+
+  async function toggleRelatorioContato(id) {
+    try {
+      const res = await fetch(`/api/contatos/${id}/toggle-relatorio`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        mostrarToast(`Status do contato ${data.contato.nome} atualizado!`, 'success');
+        carregarContatos();
+      }
+    } catch (e) {
+      mostrarToast('Erro ao atualizar contato.', 'error');
+    }
+  }
+
+  async function dispararIndividual(id) {
+    const contato = contatos.find(c => c.id === id);
+    if (!contato) return;
+
+    if (!confirm(`Deseja enviar agora o relatório de ${contato.ceramica_nome} para ${contato.nome} (+${contato.telefone})?`)) return;
+
+    mostrarToast(`Enviando relatório para ${contato.nome}...`, 'info');
+    try {
+      const res = await fetch(`/api/disparar-contato/${id}`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        mostrarToast(`Relatório enviado com sucesso para ${contato.nome}!`, 'success');
+        carregarStatus();
+      } else {
+        mostrarToast(data.error || 'Erro no envio.', 'error');
+      }
+    } catch (e) {
+      mostrarToast('Erro de comunicação.', 'error');
+    }
+  }
+
+  async function dispararParaTodos() {
+    if (!confirm('Deseja iniciar o disparo diário para TODOS os contatos ativos agora?')) return;
+
+    try {
+      const res = await fetch('/api/disparar-todos', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        mostrarToast('Disparo em lote iniciado em segundo plano!', 'success');
+        carregarStatus();
+      } else {
+        mostrarToast(data.error || 'Falha ao disparar.', 'error');
+      }
+    } catch (e) {
+      mostrarToast('Erro de comunicação.', 'error');
+    }
+  }
+
+  async function enviarRelatorioAvulso() {
+    const phone = document.getElementById('inputTelefoneAvulso').value.trim();
+    const ceramicaId = document.getElementById('selectPreviewCeramica').value;
+    if (!phone) {
+      alert('Informe o telefone de destino!');
+      return;
+    }
+
+    mostrarToast('Enviando relatório avulso...', 'info');
+    try {
+      const res = await fetch('/api/send-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, ceramicaId, modo: 'real' })
+      });
+      const data = await res.json();
+      if (data.success) {
+        mostrarToast('Relatório avulso entregue no WhatsApp!', 'success');
+        carregarStatus();
+      } else {
+        mostrarToast(data.error || 'Erro no envio.', 'error');
+      }
+    } catch (e) {
+      mostrarToast('Erro de comunicação.', 'error');
+    }
+  }
+
+  // MODAL CONTATO & AÇÕES
+  function abrirModalNovoContato(ceramicaIdPreselecionada = null) {
+    document.getElementById('modalTitulo').textContent = 'Novo Contato WhatsApp';
+    document.getElementById('formContatoId').value = '';
+    document.getElementById('formNome').value = '';
+    document.getElementById('formCargo').value = 'Proprietário';
+    document.getElementById('formTelefone').value = '';
+    document.getElementById('formReceberRelatorio').checked = true;
+
+    if (ceramicaIdPreselecionada) {
+      document.getElementById('formCeramicaId').value = ceramicaIdPreselecionada;
+    }
+    document.getElementById('modalContato').classList.add('open');
+  }
+
+  async function forcarNovoQrCode() {
+    mostrarToast('Solicitando novo QR Code...', 'info');
+    try {
+      await fetch('/api/reconnect', { method: 'POST' });
+    } catch (e) {
+      try { await fetch('/api/logout', { method: 'POST' }); } catch (err2) {}
+    }
+    setTimeout(carregarStatus, 1200);
+  }
+
+  async function desconectarWhatsApp() {
+    if (!confirm('Deseja realmente desconectar este WhatsApp? Você precisará escanear o QR Code novamente para reativar os envios.')) return;
+    mostrarToast('Desconectando sessão...', 'warn');
+    try {
+      await fetch('/api/logout', { method: 'POST' });
+    } catch (e) {
+      mostrarToast('Erro ao desconectar.', 'error');
+    }
+    setTimeout(carregarStatus, 1500);
+  }
+
+  async function dispararParaCeramica(ceramicaId) {
+    const cer = ceramicas.find(c => c.id === ceramicaId);
+    const nome = cer ? cer.nome : 'esta cerâmica';
+    const contatosDesta = contatos.filter(c => c.ceramica_id === ceramicaId && c.receber_relatorio);
+
+    if (contatosDesta.length === 0) {
+      alert(`Nenhum contato com recebimento ativo cadastrado para ${nome}.`);
+      return;
+    }
+
+    if (!confirm(`Deseja disparar o relatório de ${nome} para os ${contatosDesta.length} contato(s) ativos dela agora?`)) return;
+
+    mostrarToast(`Enviando relatórios de ${nome}...`, 'info');
+    try {
+      const res = await fetch(`/api/disparar-ceramica/${ceramicaId}`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        mostrarToast(`Relatórios de ${nome} entregues com sucesso!`, 'success');
+        carregarStatus();
+      } else {
+        mostrarToast(data.error || 'Erro no disparo.', 'error');
+      }
+    } catch (e) {
+      mostrarToast('Erro de comunicação.', 'error');
+    }
+  }
+
+  function editarContato(id) {
+    const c = contatos.find(x => x.id === id);
+    if (!c) return;
+
+    document.getElementById('modalTitulo').textContent = 'Editar Contato';
+    document.getElementById('formContatoId').value = c.id;
+    document.getElementById('formCeramicaId').value = c.ceramica_id;
+    document.getElementById('formNome').value = c.nome;
+    document.getElementById('formCargo').value = c.cargo || 'Responsável';
+    document.getElementById('formTelefone').value = c.telefone;
+    document.getElementById('formReceberRelatorio').checked = Boolean(c.receber_relatorio);
+    document.getElementById('modalContato').classList.add('open');
+  }
+
+  function fecharModalContato() {
+    document.getElementById('modalContato').classList.remove('open');
+  }
+
+  async function salvarContato(e) {
+    e.preventDefault();
+    const id = document.getElementById('formContatoId').value;
+    const ceramicaId = document.getElementById('formCeramicaId').value;
+    const cerObj = ceramicas.find(x => x.id === ceramicaId);
+    const ceramica_nome = cerObj ? cerObj.nome : 'Cerâmica';
+    const nome = document.getElementById('formNome').value.trim();
+    const cargo = document.getElementById('formCargo').value.trim();
+    const telefone = document.getElementById('formTelefone').value.trim();
+    const receber_relatorio = document.getElementById('formReceberRelatorio').checked;
+
+    const body = { ceramica_id: ceramicaId, ceramica_nome, nome, cargo, telefone, receber_relatorio };
+
+    try {
+      const url = id ? `/api/contatos/${id}` : '/api/contatos';
+      const method = id ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (data.success) {
+        mostrarToast(id ? 'Contato atualizado com sucesso!' : 'Novo contato cadastrado!', 'success');
+        fecharModalContato();
+        carregarContatos();
+      } else {
+        mostrarToast(data.error || 'Erro ao salvar contato.', 'error');
+      }
+    } catch (e) {
+      mostrarToast('Erro de conexão.', 'error');
+    }
+  }
+
+  async function excluirContato(id) {
+    const c = contatos.find(x => x.id === id);
+    if (!c) return;
+    if (!confirm(`Deseja realmente remover o contato ${c.nome} (+${c.telefone})?`)) return;
+
+    try {
+      const res = await fetch(`/api/contatos/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        mostrarToast('Contato removido!', 'success');
+        carregarContatos();
+      }
+    } catch (e) {
+      mostrarToast('Erro ao remover contato.', 'error');
+    }
+  }
+
+  function escapeHtml(str) {
+    return String(str || '').replace(/[&<>"']/g, m => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[m]);
+  }
+
+  // Inicialização
+  carregarCeramicas();
+  carregarContatos();
+  carregarStatus();
+  setInterval(carregarStatus, 3000);
+</script>
+
+</body>
+</html>

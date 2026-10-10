@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#071b2b">
+
+    <!-- PWA + Ícones (necessários para Web Push) -->
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>ThermoLink • Monitor de Fornos</title>
+
+    <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
+    <!-- Hammer.js (para suporte a gestos touch de pinça e arrasto) -->
+    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+    <!-- Chart.js Zoom & Pan Plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- App Styles -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="mobile-wrapper">
+
+    <!-- ========================================================
+         1. SPLASH SCREEN (ABERTURA COM SESSÃO VÁLIDA)
+    ========================================================= -->
+    <div id="splashScreen" class="splash-container">
+        <div class="splash-content">
+            <div class="logo-icon-box">
+                <i class="fa-solid fa-fire-flame-curved"></i>
+            </div>
+            <div class="splash-brand">ThermoLink</div>
+            <div class="splash-loading-bar"><span></span></div>
+        </div>
+    </div>
+
+    <!-- ========================================================
+         2. TELA DE AUTENTICAÇÃO / LOGIN DO CLIENTE
+    ========================================================= -->
+    <div id="loginScreen" class="login-container hidden">
+        <div class="login-box">
+            <div class="login-header">
+                <div class="login-icon">
+                    <i class="fa-solid fa-fire-flame-curved"></i>
+                </div>
+                <h2>Acesso da Cerâmica</h2>
+                <p>Insira os dados fornecidos pelo suporte ThermoLink para monitorar seus fornos</p>
+            </div>
+
+            <form id="loginForm" onsubmit="realizarLogin(event)" class="login-form">
+                <div class="input-group">
+                    <label for="loginUser">
+                        <i class="fa-solid fa-industry"></i>
+                        Usuário
+                    </label>
+                    <input 
+                        type="text" 
+                        id="loginUser" 
+                        placeholder="Ex: ceramica" 
+                        autocomplete="username" 
+                        required
+                    >
+                </div>
+
+                <div class="input-group">
+                    <label for="loginPassword">
+                        <i class="fa-solid fa-key"></i>
+                        Senha de Acesso
+                    </label>
+                    <div class="password-wrapper">
+                        <input 
+                            type="password" 
+                            id="loginPassword" 
+                            placeholder="Digite sua senha" 
+                            autocomplete="current-password" 
+                            required
+                        >
+                        <button type="button" class="btn-toggle-pwd" onclick="toggleSenha('loginPassword')">
+                            <i class="fa-regular fa-eye" id="toggleIcon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="remember-row">
+                    <label class="remember-label">
+                        <input type="checkbox" id="rememberMe" checked>
+                        <span>Lembrar neste celular</span>
+                    </label>
+                </div>
+
+                <div id="loginError" class="login-error-msg hidden">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    <span>Usuário ou senha incorretos.</span>
+                </div>
+
+                <button type="submit" id="btnLoginSubmit" class="btn-login-submit">
+                    <span>Entrar no Monitor</span>
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========================================================
+         3. APLICATIVO PRINCIPAL (PAINEL DO CLIENTE)
+    ========================================================= -->
+    <div id="mainApp" class="app-main hidden">
+
+        <!-- BANNER DE MODO SUPORTE (QUANDO ACESSADO VIA PAINEL MASTER) -->
+        <div id="impersonateBanner" class="impersonate-banner hidden">
+            <div class="imp-info">
+                <i class="fa-solid fa-user-shield text-blue"></i>
+                <span><b>Modo Suporte Admin:</b> Visualizando <strong id="impClientName">Cerâmica</strong></span>
+            </div>
+            <button class="btn-imp-exit" onclick="sairModoSuporte()">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Voltar ao Painel Master</span>
+            </button>
+        </div>
+
+        <!-- HEADER MOBILE -->
+        <header class="mobile-header">
+            <div class="header-left">
+                <button id="headerBackBtn" class="header-icon-btn hidden" onclick="voltarListaFornos()">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <div class="header-brand-info">
+                    <div id="headerTitle" class="header-title">ThermoLink</div>
+                    <div id="headerSubtitle" class="header-subtitle">
+                        <span class="user-chip" id="currentUserDisplay">Cerâmica</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="header-right">
+                <button class="header-icon-btn" onclick="atualizarManual()" title="Atualizar dados agora">
+                    <i class="fa-solid fa-rotate" id="refreshIcon"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- ====================================================
+             ABA 1: LISTA DE FORNOS (HOME)
+        ===================================================== -->
+        <section id="screenFornos" class="screen-view active">
+            
+            <!-- CABEÇALHO DA LISTAGEM DE FORNOS -->
+            <div class="section-title-bar">
+                <div class="section-title-left">
+                    <i class="fa-solid fa-fire text-orange"></i>
+                    <h2>Fornos em Operação</h2>
+                </div>
+                <span class="badge-online-count" id="statOnlineCount">0 Fornos</span>
+            </div>
+
+            <!-- LISTAGEM DOS FORNOS ONLINE -->
+            <div id="listaFornos" class="ovens-list-container">
+                <div class="loading-box">
+                    <div class="app-spinner"></div>
+                    <p>Consultando sensores no Supabase...</p>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ====================================================
+             ANÁLISE DETALHADA DO FORNO SELECIONADO (EXCLUSIVO DO FORNO ABERTO)
+        ===================================================== -->
+        <section id="screenAnaliseForno" class="screen-view hidden">
+
+            <!-- RESUMO ESTATÍSTICO DE QUEIMA (KPIS) -->
+            <div class="analysis-stats-grid">
+                <div class="analysis-stat-card stat-card-pico">
+                    <div class="stat-card-icon text-orange"><i class="fa-solid fa-fire"></i></div>
+                    <span class="analysis-stat-lbl">Pico Máximo</span>
+                    <strong class="analysis-stat-val text-orange" id="anStatMax">-- °C</strong>
+                    <span class="analysis-stat-meta">Canal 1 (Superior)</span>
+                </div>
+                <div class="analysis-stat-card stat-card-min">
+                    <div class="stat-card-icon text-blue"><i class="fa-solid fa-snowflake"></i></div>
+                    <span class="analysis-stat-lbl">Pico Mínimo</span>
+                    <strong class="analysis-stat-val text-blue" id="anStatMin">-- °C</strong>
+                    <span class="analysis-stat-meta">Menor leitura</span>
+                </div>
+                <div class="analysis-stat-card stat-card-avg">
+                    <div class="stat-card-icon text-green"><i class="fa-solid fa-chart-line"></i></div>
+                    <span class="analysis-stat-lbl">Média de Queima</span>
+                    <strong class="analysis-stat-val" id="anStatAvg">-- °C</strong>
+                    <span class="analysis-stat-meta">Média no período</span>
+                </div>
+                <div class="analysis-stat-card stat-card-delta">
+                    <div class="stat-card-icon"><i class="fa-solid fa-layer-group"></i></div>
+                    <span class="analysis-stat-lbl">Amostragem</span>
+                    <strong class="analysis-stat-val text-white" id="anStatCount">--</strong>
+                    <span class="analysis-stat-meta" id="anStatPeriod">Pontos avaliados</span>
+                </div>
+            </div>
+
+            <!-- GRÁFICO DA CURVA TÉRMICA INTERATIVO COM ZOOM, PAN E MODO DE LADO -->
+            <div class="card-dark chart-card">
+                <div class="chart-header-row">
+                    <div>
+                        <div class="chart-title" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                            <span>Curva Térmica Detalhada</span>
+                            <button class="btn-expand-landscape" onclick="abrirGraficoLandscape()" title="Abrir em tela cheia de lado no celular">
+                                <i class="fa-solid fa-mobile-screen-button fa-rotate-90"></i>
+                                <span>Ver de Lado</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Controles de Canais -->
+                    <div class="chart-pill-group" id="anChannelFilter">
+                        <button class="pill-btn active" onclick="filtrarCanaisAnalise('all', this)">Ambos</button>
+                        <button class="pill-btn" onclick="filtrarCanaisAnalise('c1', this)">C1</button>
+                        <button class="pill-btn" onclick="filtrarCanaisAnalise('c2', this)">C2</button>
+                    </div>
+                </div>
+
+                <!-- BARRA DE FERRAMENTAS DE NAVEGAÇÃO E ZOOM DO GRÁFICO -->
+                <div class="chart-quick-nav-bar">
+                    <span class="chart-nav-hint">
+                        <i class="fa-solid fa-arrows-left-right"></i> Arraste o gráfico para navegar
+                    </span>
+                    <div class="chart-zoom-btn-group">
+                        <button class="chart-tool-btn" id="btnPanLeft" onclick="panGrafico('left')" title="Navegar para a esquerda (leituras anteriores)">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </button>
+                        <button class="chart-tool-btn" id="btnZoomIn" onclick="zoomGrafico(1.35)" title="Aproximar zoom (+)">
+                            <i class="fa-solid fa-magnifying-glass-plus"></i>
+                        </button>
+                        <button class="chart-tool-btn" id="btnZoomOut" onclick="zoomGrafico(0.75)" title="Afastar zoom (-)">
+                            <i class="fa-solid fa-magnifying-glass-minus"></i>
+                        </button>
+                        <button class="chart-tool-btn" id="btnPanRight" onclick="panGrafico('right')" title="Navegar para a direita (leituras recentes)">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                        <button class="chart-tool-btn reset" id="btnZoomReset" onclick="resetZoomGrafico()" title="Restaurar zoom original">
+                            <i class="fa-solid fa-rotate-left"></i>
+                            <span>Reset</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- PAINEL DINÂMICO DE INSPEÇÃO AO TOCAR OU ARRASTAR NO GRÁFICO -->
+                <div class="analysis-chart-readout" id="anChartReadoutPill">
+                    <span class="readout-clock"><i class="fa-regular fa-clock"></i> <b id="anReadoutTime">--:--:--</b></span>
+                    <span class="readout-c1 text-orange"><i class="fa-solid fa-circle"></i> C1: <b id="anReadoutC1">-- °C</b></span>
+                    <span class="readout-c2 text-blue"><i class="fa-solid fa-circle"></i> C2: <b id="anReadoutC2">-- °C</b></span>
+                    <span class="readout-delta"><i class="fa-solid fa-arrows-split-up-and-left"></i> ΔT: <b id="anReadoutDelta">--</b></span>
+                </div>
+
+                <div class="chart-canvas-box interactive-canvas-box" id="analysisChartBox" onclick="abrirGraficoLandscape()" title="Toque no gráfico para ver de lado">
+                    <canvas id="analysisChartCanvas"></canvas>
+                    <div class="chart-tap-fullscreen-hint">
+                        <i class="fa-solid fa-mobile-screen-button fa-rotate-90"></i>
+                        <span>Toque no gráfico para ver de lado</span>
+                    </div>
+                </div>
+
+                <div class="chart-legend-custom">
+                    <div class="legend-row">
+                        <span class="legend-color legend-c1"></span>
+                        <span>Canal 1 - Superior</span>
+                    </div>
+                    <div class="legend-row">
+                        <span class="legend-color legend-c2"></span>
+                        <span>Canal 2 - Inferior</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TABELA DE REGISTROS COM EXPANSÃO RÁPIDA -->
+            <div class="card-dark table-accordion-card">
+                <div class="table-header-with-filter">
+                    <div class="table-title-group" onclick="toggleTabelaAnalise()" style="cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-list-check text-orange"></i>
+                        <span style="font-weight: 700; font-size: 13px; color: #fff;">Registros de Leituras</span>
+                        <i class="fa-solid fa-chevron-down table-toggle-chevron" id="anTableChevron" style="font-size: 11px; color: var(--text-muted); transition: transform 0.2s;"></i>
+                    </div>
+
+                    <div class="table-limit-filter">
+                        <span>Exibir:</span>
+                        <select id="tableRowLimitSelect" onchange="trocarLimiteTabela(this.value)">
+                            <option value="25">25 linhas</option>
+                            <option value="50">50 linhas</option>
+                            <option value="100">100 linhas</option>
+                            <option value="all">Todas</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="anTableScrollWrapper" class="table-scroll-wrapper" style="max-height: 260px; margin-top: 10px;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Horário</th>
+                                <th>Canal 1</th>
+                                <th>Canal 2</th>
+                                <th>ΔT</th>
+                            </tr>
+                        </thead>
+                        <tbody id="anTableBody">
+                            <tr>
+                                <td colspan="4" class="table-empty-msg">Carregando dados...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ====================================================
+             ABA 2: HISTÓRICO DE QUEIMAS (CICLOS, LOTES & RELATÓRIOS)
+        ===================================================== -->
+        <section id="screenHistoricoQueimas" class="screen-view hidden">
+            
+            <!-- CABEÇALHO DA TELA DE HISTÓRICO -->
+            <div class="section-title-bar">
+                <div class="section-title-left">
+                    <i class="fa-solid fa-clock-rotate-left text-orange"></i>
+                    <h2>Histórico de Queimas</h2>
+                </div>
+                <span class="badge-online-count" id="statHistoricoCount">Ciclos Anteriores</span>
+            </div>
+
+            <!-- CARDS DE MÉTRICAS GERAIS (KPIS) -->
+            <div class="historico-kpi-grid">
+                <div class="historico-kpi-card">
+                    <span class="kpi-lbl">Total de Queimas</span>
+                    <strong class="kpi-val text-orange" id="kpiTotalQueimas">--</strong>
+                    <span class="kpi-sub">Ciclos registrados</span>
+                </div>
+                <div class="historico-kpi-card">
+                    <span class="kpi-lbl">Tempo Médio</span>
+                    <strong class="kpi-val text-blue" id="kpiTempoMedio">8h 45m</strong>
+                    <span class="kpi-sub">Ciclo completo</span>
+                </div>
+                <div class="historico-kpi-card">
+                    <span class="kpi-lbl">Pico Médio</span>
+                    <strong class="kpi-val" id="kpiPicoMedio">-- °C</strong>
+                    <span class="kpi-sub">Queima nominal</span>
+                </div>
+                <div class="historico-kpi-card">
+                    <span class="kpi-lbl">Conformidade</span>
+                    <strong class="kpi-val text-green" id="kpiTaxaSucesso">100%</strong>
+                    <span class="kpi-sub">No padrão de queima</span>
+                </div>
+            </div>
+
+            <!-- FILTRO POR FORNO NO HISTÓRICO -->
+            <div class="card-dark filters-control-card">
+                <div class="filter-row">
+                    <span class="filter-row-title"><i class="fa-solid fa-fire text-orange"></i> Filtrar Forno:</span>
+                    <div class="filter-pill-scroll" id="histFiltroForno">
+                        <button class="pill-btn active" onclick="filtrarHistoricoForno('all', this)">Todos</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LISTAGEM DOS CICLOS DE QUEIMA ANTERIORES -->
+            <div id="listaQueimasHistorico" class="historico-queimas-container">
+                <div class="loading-box">
+                    <div class="app-spinner"></div>
+                    <p>Consultando histórico de queimas...</p>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Aba Alertas removida -->
+
+        <!-- ====================================================
+             ABA 4: CONFIGURAÇÕES & ACESSO
+        ===================================================== -->
+        <section id="screenConfig" class="screen-view hidden">
+            
+            <!-- PERFIL DA CERÂMICA -->
+            <div class="card-dark profile-card">
+                <div class="profile-avatar">
+                    <i class="fa-solid fa-industry"></i>
+                </div>
+                <div class="profile-meta">
+                    <h3 id="profileName">Cerâmica Cliente</h3>
+                    <span class="profile-badge" id="profileRole">Acesso Concedido</span>
+                </div>
+            </div>
+
+            <!-- ========================================================
+                 CONFIGURAÇÃO DE ALERTAS (TEMPO REAL + PONTE KODULAR)
+            ========================================================= -->
+            <div class="card-dark">
+                <div class="alertas-header">
+                    <div class="alertas-header-titulo">
+                        <i class="fa-solid fa-bell text-orange"></i>
+                        <span>Configuração de Alertas</span>
+                    </div>
+                    <!-- INTERRUPTOR GERAL (MASTER TOGGLE) -->
+                    <label class="tl-switch" title="Ativar ou desativar todos os alertas">
+                        <input type="checkbox" id="chkAlertasGeral" onchange="ThermoAlertas.alternarGeral(this.checked)">
+                        <span class="tl-switch-slider"></span>
+                    </label>
+                </div>
+
+                <p class="alertas-descricao">Monitora as temperaturas dos Canais 1 e 2 em tempo real e dispara alerta visual, sonoro e vibração quando algum limite for rompido.</p>
+
+                <!-- PAINEL RETRÁTIL: visível apenas com o interruptor geral ativado -->
+                <div id="painelAlertas" class="hidden">
+
+                    <!-- SELETOR DE FORNO (individual ou aplicar a todos) -->
+                    <label class="cfg-label">Forno</label>
+                    <select id="selFornoAlerta" class="cfg-input" onchange="ThermoAlertas.selecionarForno(this.value)">
+                        <option value="">Carregando fornos...</option>
+                    </select>
+
+                    <!-- LIMITES DE TEMPERATURA -->
+                    <div class="cfg-limite-grid">
+                        <div>
+                            <label class="cfg-label"><i class="fa-solid fa-arrow-trend-up" style="color: var(--red);"></i> Limite Máximo</label>
+                            <input type="number" id="inpLimiteMax" class="cfg-input" placeholder="Ex: 950" min="0" max="2000" inputmode="numeric" oninput="ThermoAlertas.salvarLimites()">
+                        </div>
+                        <div>
+                            <label class="cfg-label"><i class="fa-solid fa-arrow-trend-down text-blue"></i> Limite Mínimo</label>
+                            <input type="number" id="inpLimiteMin" class="cfg-input" placeholder="Ex: 700" min="0" max="2000" inputmode="numeric" oninput="ThermoAlertas.salvarLimites()">
+                        </div>
+                    </div>
+
+                    <!-- SELEÇÃO DE ESTÍMULOS -->
+                    <label class="cfg-label">Estímulos do Alerta</label>
+                    <label class="estimulo-check">
+                        <input type="checkbox" id="chkEstVisual" onchange="ThermoAlertas.salvarEstimulos()">
+                        <i class="fa-solid fa-eye" style="color: var(--red); width: 16px; text-align: center;"></i>
+                        <span>Alerta visual (mensagem piscante na tela)</span>
+                    </label>
+                    <label class="estimulo-check">
+                        <input type="checkbox" id="chkEstSonoro" onchange="ThermoAlertas.salvarEstimulos()">
+                        <i class="fa-solid fa-volume-high text-orange" style="width: 16px; text-align: center;"></i>
+                        <span>Alerta sonoro (bip de alarme repetitivo)</span>
+                    </label>
+                    <label class="estimulo-check">
+                        <input type="checkbox" id="chkEstVibracao" onchange="ThermoAlertas.salvarEstimulos()">
+                        <i class="fa-solid fa-mobile-screen-button text-blue" style="width: 16px; text-align: center;"></i>
+                        <span>Vibração do celular</span>
+                    </label>
+
+                    <!-- FEEDBACK DE SALVAMENTO AUTOMÁTICO -->
+                    <div class="alertas-salvo" id="alertasSalvoFeedback"><i class="fa-solid fa-circle-check"></i> Configuração salva automaticamente</div>
+                </div>
+            </div>
+
+            <!-- SOBRE & LOGOUT -->
+            <div class="card-dark">
+                <div class="card-dark-header">
+                    <i class="fa-solid fa-circle-info text-blue"></i>
+                    <span>Sobre o ThermoLink</span>
+                </div>
+                <div class="info-row">
+                    <span>Aparelho</span>
+                    <b>ThermoLink IoT Multi-Sensor</b>
+                </div>
+                <div class="info-row">
+                    <span>Versão do App</span>
+                    <b>v2.4.0 Mobile</b>
+                </div>
+                <div class="info-row">
+                    <span>Banco de Dados</span>
+                    <b>Supabase Cloud Realtime</b>
+                </div>
+
+                <button class="btn-logout" onclick="realizarLogout()">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    Desconectar / Trocar de Conta
+                </button>
+            </div>
+
+        </section>
+
+        <!-- ====================================================
+             BARRA DE NAVEGAÇÃO INFERIOR MOBILE (BOTTOM TABS)
+        ===================================================== -->
+        <nav class="bottom-tab-bar">
+            <button class="tab-item active" id="tabNavFornos" onclick="navegarAba('fornos')">
+                <i class="fa-solid fa-fire-flame-curved"></i>
+                <span>Fornos</span>
+            </button>
+            <button class="tab-item" id="tabNavHistorico" onclick="navegarAba('historico')">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                <span>Histórico</span>
+            </button>
+            <button class="tab-item" id="tabNavConfig" onclick="navegarAba('config')">
+                <i class="fa-solid fa-gear"></i>
+                <span>Acesso</span>
+            </button>
+        </nav>
+
+    <!-- ========================================================
+         OVERLAY DE BLOQUEIO POR INADIMPLÊNCIA / SUSPENSÃO
+    ========================================================= -->
+    <div id="clientBlockedOverlay" class="client-blocked-overlay modal-overlay hidden">
+        <div class="client-blocked-card modal-card">
+            <div class="client-blocked-icon">
+                <i class="fa-solid fa-lock"></i>
+            </div>
+            <h2 class="client-blocked-title">Acesso Temporariamente Suspenso</h2>
+            <div id="clientBlockedCeramicaNome" class="client-blocked-subtitle">Cerâmica Cliente</div>
+
+            <!-- Caixa de Motivo personalizado digitado pelo Administrador -->
+            <div class="client-blocked-reason-box">
+                <div class="client-blocked-reason-header">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    <span>Mensagem da Administração</span>
+                </div>
+                <p id="clientBlockedReasonText" class="client-blocked-reason-text">
+                    Acesso temporariamente suspenso pela administração.
+                </p>
+            </div>
+
+            <p class="client-blocked-info">
+                Os dados de telemetria e gráficos dos fornos estão temporariamente ocultos. Caso tenha realizado a regularização, clique em verificar ou entre em contato com o suporte da <b>ThermoLink</b>.
+            </p>
+
+            <button id="btnVerificarDesbloqueio" class="btn-primary" onclick="verificarDesbloqueio()" style="width: 100%; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; height: 46px; border-radius: 12px; font-weight: 700;">
+                <i class="fa-solid fa-rotate"></i>
+                <span>Verificar Regularização</span>
+            </button>
+            <button class="btn-logout" onclick="realizarLogout()" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; height: 42px; border-radius: 12px;">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                <span>Sair da Conta</span>
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<!-- ========================================================
+     MODAL FULLSCREEN LANDSCAPE DO GRÁFICO (DE LADO NO CELULAR)
+========================================================= -->
+<div id="modalGraficoLandscape" class="modal-landscape-view hidden">
+    <div class="landscape-header-bar">
+        <div class="landscape-header-left">
+            <button class="btn-landscape-close" onclick="fecharGraficoLandscape()" title="Voltar / Sair do modo horizontal">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Voltar</span>
+            </button>
+            <div class="landscape-title-group">
+                <span class="landscape-title" id="landFornoTitle">Forno 01</span>
+                <span class="status-indicator-badge is-online" id="landStatusBadge">
+                    <span class="pulse-dot"></span>
+                    <span id="landStatusText">ONLINE</span>
+                </span>
+            </div>
+        </div>
+
+        <!-- LEITURA DINÂMICA AO TOCAR/ARRASTAR NO GRÁFICO -->
+        <div class="landscape-readout-pill" id="landReadoutPill">
+            <span class="readout-time" id="landReadoutTime">Toque na linha para inspecionar</span>
+            <span class="readout-c1 text-orange" id="landReadoutC1">C1: -- °C</span>
+            <span class="readout-c2 text-blue" id="landReadoutC2">C2: -- °C</span>
+            <span class="readout-delta" id="landReadoutDelta">ΔT: --</span>
+        </div>
+
+        <div class="landscape-header-right">
+            <!-- SELETOR DE CANAIS -->
+            <div class="landscape-pill-group" id="landChannelFilter">
+                <button class="pill-btn active" onclick="filtrarCanaisLandscape('all', this)">Ambos</button>
+                <button class="pill-btn" onclick="filtrarCanaisLandscape('c1', this)">C1</button>
+                <button class="pill-btn" onclick="filtrarCanaisLandscape('c2', this)">C2</button>
+            </div>
+
+            <!-- CONTROLES DE ZOOM E NAVEGAÇÃO -->
+            <div class="landscape-tools">
+                <button class="land-tool-btn" id="btnLandPanLeft" onclick="panGrafico('left')" title="Navegar para leituras anteriores (passado)">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <button class="land-tool-btn" id="btnLandZoomIn" onclick="zoomGrafico(1.35)" title="Aproximar zoom (+)">
+                    <i class="fa-solid fa-magnifying-glass-plus"></i>
+                </button>
+                <button class="land-tool-btn" id="btnLandZoomOut" onclick="zoomGrafico(0.75)" title="Afastar zoom (-)">
+                    <i class="fa-solid fa-magnifying-glass-minus"></i>
+                </button>
+                <button class="land-tool-btn" id="btnLandPanRight" onclick="panGrafico('right')" title="Navegar para leituras recentes (tempo real)">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+                <button class="land-tool-btn reset" id="btnLandZoomReset" onclick="resetZoomGrafico()" title="Restaurar visualização">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </button>
+            </div>
+
+            <button class="btn-landscape-icon-close" onclick="fecharGraficoLandscape()" title="Fechar tela cheia">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="landscape-canvas-wrapper" id="landCanvasWrapper">
+        <canvas id="landscapeChartCanvas"></canvas>
+    </div>
+
+    <div class="landscape-footer-bar">
+        <div class="landscape-footer-hint">
+            <i class="fa-solid fa-arrows-left-right"></i>
+            <span>Arraste para navegar no tempo • Use pinça ou botões para zoom • Toque na linha para ver valores</span>
+        </div>
+        <div class="landscape-footer-stats">
+            <span class="land-stat-tag pico"><i class="fa-solid fa-fire text-orange"></i> Pico: <b id="landStatPico">-- °C</b></span>
+            <span class="land-stat-tag min"><i class="fa-solid fa-snowflake text-blue"></i> Mín: <b id="landStatMin">-- °C</b></span>
+            <span class="land-stat-tag avg"><i class="fa-solid fa-chart-line text-green"></i> Média: <b id="landStatAvg">-- °C</b></span>
+            <span class="land-stat-tag count"><i class="fa-solid fa-layer-group"></i> <b id="landStatCount">--</b></span>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts da Aplicação -->
+<script src="app.js"></script>
+<script src="push-notifications.js"></script>
+
+</body>
+</html>

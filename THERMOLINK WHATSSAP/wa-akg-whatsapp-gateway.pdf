@@ -1,0 +1,841 @@
+%PDF-1.3
+%ºß¬à
+3 0 obj
+<</Type /Page
+/Parent 1 0 R
+/Resources 2 0 R
+/MediaBox [0 0 595.2799999999999727 841.8899999999999864]
+/Contents 4 0 R
+>>
+endobj
+4 0 obj
+<<
+/Length 7565
+>>
+stream
+0.5670000000000001 w
+0 G
+BT
+/F2 16 Tf
+18.3999999999999986 TL
+0.118 g
+56.6929133858267775 785.1970866141732586 Td
+(WA-AKG: o repositorio, a instalacao completa e a funcao que) Tj
+ET
+BT
+/F2 16 Tf
+18.3999999999999986 TL
+0.118 g
+56.6929133858267775 763.9372440944881646 Td
+(derruba numero) Tj
+ET
+0.91 0.39 0.04 RG
+56.6929133858267775 737.0081102362204319 m
+538.5870866141731312 737.0081102362204319 l
+S
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 714.3309448818897636 Td
+( **O repositorio e `mrifqidaffaaditya/WA-AKG`, MIT, com 315 estrelas** em 26/09/2026. E Next.js 15 com Baileys e) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 701.5750393700786844 Td
+(Prisma, autohospedado.) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 681.7325196850392786 Td
+( **Nao e so instalar e usar:** precisa de banco de dados MySQL ou PostgreSQL e de gerenciador de processo. O video) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 668.9766141732283131 Td
+(faz parecer que voce escaneia um QR code e pronto, e nao e.) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 649.1340944881889072 Td
+( **A funcao de disparo em massa e o que derruba numero.** Ela existe com atraso aleatorio de 10 a 30 segundos e) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 636.3781889763779418 Td
+(envio em lote, e isso e contorno da regra da plataforma, nao recurso aprovado. O preco quando cai e o numero da) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 623.6222834645668627 Td
+(empresa.) Tj
+ET
+BT
+/F2 13 Tf
+14.9499999999999993 TL
+0.118 g
+56.6929133858267775 598.1104724409448181 Td
+(Instalacao, do comeco ao painel no ar) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 578.2679527559055259 Td
+(Confira os requisitos antes de clonar. E neles que a instalacao trava, nao no codigo.) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 554.1734645669291695 Td
+(1. Tenha os requisitos antes de comecar) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 541.1340944881890209 Td
+(**Tres coisas precisam existir antes:** Node, um banco MySQL ou PostgreSQL rodando, e um gerenciador de processo pra manter o) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 530.9293700787401349 Td
+(servico no ar. O gerenciador se instala global.  npm install -g pm2  Atalho: Se voce nao tem banco nenhum rodando, resolve isso) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 520.7246456692913625 Td
+(primeiro e separado. Tentar instalar o projeto e subir o banco ao mesmo tempo e onde a maioria desiste.) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 499.1813385826771992 Td
+(2. Clone, instale e configure o ambiente) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 486.1419685039370506 Td
+(**O arquivo de ambiente e onde mora a conexao com o banco e o segredo de autenticacao.** Copie do exemplo e preencha o endereco) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 475.9372440944882214 Td
+(do banco, o segredo e a porta.  git clone https://github.com/mrifqidaffaaditya/WA-AKG.git) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 465.7325196850394491 Td
+(cd WA-AKG) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 455.5277952755906199 Td
+(npm install) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 445.3230708661418475 Td
+(cp .env.example .env) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 423.7797637795276842 Td
+(3. Monte o banco e crie o primeiro administrador) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 410.7403937007875356 Td
+(**Dois comandos.** O primeiro cria as tabelas e gera o cliente de banco, o segundo cria a conta com que voce entra no painel. Troque o) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 400.5356692913387064 Td
+(e-mail e a senha do exemplo.  npm run db:push) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 390.3309448818899341 Td
+(npm run make-admin seu@email.com umaSenhaForte) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 368.7876377952757707 Td
+(4. Conecte a conta e teste com o seu proprio numero) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 355.7482677165356222 Td
+(**Escaneie o QR code e mande a primeira mensagem pra voce mesmo.** Nunca teste em cliente. A interface tambem aceita chamada) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 345.543543307086793 Td
+(por API com chave propria, que e como voce integra no seu sistema depois.  1\) Entre no painel e escaneie o QR code com o WhatsApp) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 335.3388188976380206 Td
+(que vai ser usado  2\) Mande uma mensagem de teste pro seu proprio numero  3\) Teste uma resposta automatica, com uma palavra que) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 325.1340944881892483 Td
+(voce nao usa no dia a dia  4\) So depois disso ligue em qualquer fluxo com cliente de verdade) Tj
+ET
+BT
+/F2 13 Tf
+14.9499999999999993 TL
+0.118 g
+56.6929133858267775 302.1734645669293968 Td
+(O que ligar, sem medo) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 282.3309448818899909 Td
+(Esses quatro usos sao os que tiram trabalho manual e nao brigam com regra nenhuma.) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 258.2364566929136345 Td
+(1. Resposta automatica fora do horario) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 245.1970866141734859 Td
+(O uso mais seguro e o de retorno mais rapido. Quem escreve as onze da noite recebe resposta na hora, e a equipe atende no dia) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 234.9923622047247136 Td
+(seguinte sem fila.) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 213.4490551181105502 Td
+(2. Confirmacao de pedido e de agendamento) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 200.4096850393704017 Td
+(Mensagem que a pessoa esta esperando receber, disparada por um evento do seu sistema. Isso nao e envio em massa, e transacional.) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 178.8663779527562383 Td
+(3. Agendamento de mensagem com midia) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 165.8270078740160898 Td
+(Planejar envio com imagem, video ou documento. Util pra lembrete e pra material que voce ja prometeu pra alguem.) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 144.2837007874019264 Td
+(4. Integracao com automacao sem codigo) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 131.2443307086617779 Td
+(Ele tem nos prontos pra ferramenta de automacao visual, com no de acao e no de disparo por evento. E assim que voce conecta no) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 121.0396062992130055 Td
+(resto do seu fluxo sem escrever codigo.) Tj
+ET
+BT
+/F2 13 Tf
+14.9499999999999993 TL
+0.118 g
+56.6929133858267775 98.0789763779530404 Td
+(O que deixar desligado) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 78.2364566929136345 Td
+(Tres coisas. A primeira e a que derruba numero, e e a mais tentadora.) Tj
+ET
+endstream
+endobj
+5 0 obj
+<</Type /Page
+/Parent 1 0 R
+/Resources 2 0 R
+/MediaBox [0 0 595.2799999999999727 841.8899999999999864]
+/Contents 6 0 R
+>>
+endobj
+6 0 obj
+<<
+/Length 6753
+>>
+stream
+0.5670000000000001 w
+0.91 0.39 0.04 RG
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 785.1970866141732586 Td
+(1. Disparo em massa pra lista) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 772.1577165354329964 Td
+(Atraso aleatorio e envio em lote sao mecanismos pra nao ser detectado, o que e a definicao de contornar a regra. Quando cai, cai o) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 761.952992125984224 Td
+(numero da empresa, com o historico de conversa de todos os seus clientes dentro dele.) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 740.4096850393700606 Td
+(2. Numero principal do negocio na primeira semana) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 727.3703149606299121 Td
+(Teste com um numero secundario, sempre. Baileys e cliente nao oficial, e conexao instavel ou uso fora do padrao pode gerar bloqueio.) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 705.827007874015635 Td
+(3. Mensagem pra quem nao pediu) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 692.7876377952754865 Td
+(Independente da ferramenta, mandar mensagem pra quem nao autorizou e problema de LGPD e e o caminho mais rapido pra denuncia) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 682.5829133858267141 Td
+(dentro do proprio aplicativo.) Tj
+ET
+BT
+/F2 13 Tf
+14.9499999999999993 TL
+0.118 g
+56.6929133858267775 659.6222834645668627 Td
+(A alternativa oficial, pra quando o volume crescer) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 639.7797637795274568 Td
+(Duas linhas honestas que o video nao da.) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 615.6852755905511003 Td
+(1. Existe API oficial da plataforma) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 602.6459055118109518 Td
+(E paga por conversa, exige aprovacao de modelo de mensagem e e mais burocratica. Em troca, o numero nao cai, e isso muda tudo) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 592.4411811023621794 Td
+(quando o atendimento e o seu canal de venda.) Tj
+ET
+BT
+/F2 9.5 Tf
+10.9249999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 570.8978740157480161 Td
+(2. O criterio pra trocar) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 557.8585039370078675 Td
+(Enquanto e uso interno e volume baixo, autohospedado resolve e economiza. Quando o WhatsApp passa a ser o canal que paga a) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.118 g
+56.6929133858267775 547.6537795275589815 Td
+(conta, o risco de perder o numero fica maior que a economia.) Tj
+ET
+BT
+/F2 13 Tf
+14.9499999999999993 TL
+0.118 g
+56.6929133858267775 524.6931496062992437 Td
+(Antes de ligar em cliente) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 504.8506299212598378 Td
+(Cinco conferencias.) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 485.0081102362204888 Td
+(Banco de dados rodando e o gerenciador de processo instalado  |  O .env com conexao de banco e segredo preenchidos) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 472.2522047244094665 Td
+( |  Conta de administrador criada e painel abrindo  |  Voce testou no seu proprio numero, nao no do cliente  |  O disparo) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 459.4962992125984442 Td
+(em massa esta desligado) Tj
+ET
+BT
+/F2 13 Tf
+14.9499999999999993 TL
+0.118 g
+56.6929133858267775 433.9844881889763997 Td
+(Funciona no Brasil?) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 414.1419685039369938 Td
+(**O WhatsApp e o canal principal de venda de boa parte do comercio brasileiro, e e isso que muda o calculo de risco) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 401.3860629921259715 Td
+(aqui.** Nos Estados Unidos perder um numero de WhatsApp e um transtorno, aqui pode ser perder o negocio, porque o) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 388.6301574803149492 Td
+(historico de conversa com cliente, o catalogo e a confianca estao todos ali. Por isso a recomendacao e mais dura do que) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 375.8742519685039269 Td
+(a do video original: teste em numero secundario, nunca ligue disparo em massa, e assim que o canal virar receita) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 363.1183464566929047 Td
+(relevante, migre pra API oficial e pague por conversa. Somando a LGPD, mensagem pra quem nao autorizou e risco em) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 350.3624409448818824 Td
+(duas frentes ao mesmo tempo, o bloqueio e a multa.) Tj
+ET
+BT
+/F2 13 Tf
+14.9499999999999993 TL
+0.118 g
+56.6929133858267775 324.8506299212598378 Td
+(Links) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 305.0081102362204319 Td
+(mrifqidaffaaditya/WA-AKG: https://github.com/mrifqidaffaaditya/WA-AKG  |  Baileys:) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 292.2522047244094665 Td
+(https://github.com/WhiskeySockets/Baileys  |  API oficial do WhatsApp:) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 279.4962992125983874 Td
+(https://developers.facebook.com/docs/whatsapp/cloud-api  |  Texto da LGPD:) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 266.7403937007874219 Td
+(https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm) Tj
+ET
+0.91 0.39 0.04 RG
+56.6929133858267775 241.2285826771653205 m
+538.5870866141731312 241.2285826771653205 l
+S
+BT
+/F2 12 Tf
+13.7999999999999989 TL
+0.91 0.388 0.039 rg
+56.6929133858267775 218.5514173228345953 Td
+(Dica do Fabiano) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 201.5435433070865656 Td
+(Ligue uma coisa so na primeira semana, que e a resposta automatica fora do horario. E o que mais alivia a equipe e o) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 188.7876377952756002 Td
+(que menos risco traz, porque e resposta a quem escreveu primeiro. Se depois de sete dias isso estiver estavel, ai voce) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 176.0317322834645211 Td
+(adiciona a confirmacao de pedido disparada pelo seu sistema. Quem liga tudo de uma vez nao sabe qual parte quebrou) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.118 g
+56.6929133858267775 163.2758267716535556 Td
+(quando o numero for limitado, e isso e o pior lugar pra estar.) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.392 g
+56.6929133858267775 133.5120472440944468 Td
+(fabiano.app) Tj
+ET
+endstream
+endobj
+1 0 obj
+<</Type /Pages
+/Kids [3 0 R 5 0 R ]
+/Count 2
+>>
+endobj
+7 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+8 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+9 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-Oblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+10 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-BoldOblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+11 0 obj
+<<
+/Type /Font
+/BaseFont /Courier
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+12 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+13 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-Oblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+14 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-BoldOblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+15 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Roman
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+16 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+17 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Italic
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+18 0 obj
+<<
+/Type /Font
+/BaseFont /Times-BoldItalic
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+19 0 obj
+<<
+/Type /Font
+/BaseFont /ZapfDingbats
+/Subtype /Type1
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+20 0 obj
+<<
+/Type /Font
+/BaseFont /Symbol
+/Subtype /Type1
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+2 0 obj
+<<
+/ProcSet [/PDF /Text /ImageB /ImageC /ImageI]
+/Font <<
+/F1 7 0 R
+/F2 8 0 R
+/F3 9 0 R
+/F4 10 0 R
+/F5 11 0 R
+/F6 12 0 R
+/F7 13 0 R
+/F8 14 0 R
+/F9 15 0 R
+/F10 16 0 R
+/F11 17 0 R
+/F12 18 0 R
+/F13 19 0 R
+/F14 20 0 R
+>>
+/XObject <<
+>>
+>>
+endobj
+21 0 obj
+<<
+/Producer (jsPDF 4.2.1)
+/CreationDate (D:20261001165018-00'00')
+>>
+endobj
+22 0 obj
+<<
+/Type /Catalog
+/Pages 1 0 R
+/OpenAction [3 0 R /FitH null]
+/PageLayout /OneColumn
+>>
+endobj
+xref
+0 23
+0000000000 65535 f 
+0000014711 00000 n 
+0000016536 00000 n 
+0000000015 00000 n 
+0000000152 00000 n 
+0000007769 00000 n 
+0000007906 00000 n 
+0000014774 00000 n 
+0000014899 00000 n 
+0000015029 00000 n 
+0000015162 00000 n 
+0000015300 00000 n 
+0000015424 00000 n 
+0000015553 00000 n 
+0000015685 00000 n 
+0000015821 00000 n 
+0000015949 00000 n 
+0000016076 00000 n 
+0000016205 00000 n 
+0000016338 00000 n 
+0000016440 00000 n 
+0000016786 00000 n 
+0000016872 00000 n 
+trailer
+<<
+/Size 23
+/Root 22 0 R
+/Info 21 0 R
+/ID [ <AFB69CF845D8BE7D21A12DC79895632F> <AFB69CF845D8BE7D21A12DC79895632F> ]
+>>
+startxref
+16976
+%%EOF

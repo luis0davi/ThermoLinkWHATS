@@ -1,0 +1,273 @@
+-- ============================================================
+-- THERMO X - BANCO DE DADOS V1
+-- ============================================================
+
+-- ============================================================
+-- 1. EMPRESAS
+-- ============================================================
+
+create table if not exists empresas (
+
+    id bigint primary key generated always as identity,
+
+    nome text not null,
+
+    ativo boolean not null default true,
+
+    created_at timestamptz not null default now()
+
+);
+
+
+-- ============================================================
+-- 2. DISPOSITIVOS THERMO X
+-- ============================================================
+
+create table if not exists dispositivos (
+
+    id bigint primary key generated always as identity,
+
+    empresa_id bigint not null
+        references empresas(id)
+        on delete cascade,
+
+    numero_serie text not null unique,
+
+    nome text,
+
+    modelo text default 'THERMO X',
+
+    firmware text,
+
+    ip text,
+
+    wifi_rssi integer,
+
+    status text default 'offline',
+
+    ultimo_contato timestamptz,
+
+    created_at timestamptz not null default now()
+
+);
+
+
+-- ============================================================
+-- 3. FORNOS
+-- ============================================================
+
+create table if not exists fornos (
+
+    id bigint primary key generated always as identity,
+
+    dispositivo_id bigint not null
+        references dispositivos(id)
+        on delete cascade,
+
+    numero integer not null,
+
+    nome text not null,
+
+    modulo_alutal integer not null,
+
+    ativo boolean not null default true,
+
+    created_at timestamptz not null default now(),
+
+    unique(dispositivo_id, numero),
+
+    unique(dispositivo_id, modulo_alutal)
+
+);
+
+
+-- ============================================================
+-- 4. LEITURAS
+-- ============================================================
+
+create table if not exists leituras (
+
+    id bigint primary key generated always as identity,
+
+    dispositivo_id bigint not null
+        references dispositivos(id)
+        on delete cascade,
+
+    forno_id bigint
+        references fornos(id)
+        on delete set null,
+
+    modulo_alutal integer not null,
+
+    canal_1 numeric,
+
+    canal_2 numeric,
+
+    data_hora timestamptz not null default now(),
+
+    created_at timestamptz not null default now()
+
+);
+
+
+-- ============================================================
+-- 5. ÍNDICES
+-- ============================================================
+
+create index if not exists idx_leituras_dispositivo
+on leituras(dispositivo_id);
+
+
+create index if not exists idx_leituras_forno
+on leituras(forno_id);
+
+
+create index if not exists idx_leituras_data
+on leituras(data_hora);
+
+
+create index if not exists idx_leituras_modulo
+on leituras(modulo_alutal);
+
+
+-- ============================================================
+-- 6. EMPRESA DE TESTE
+-- ============================================================
+
+insert into empresas (
+    nome
+)
+
+values (
+    'CERAMICA 1'
+)
+
+on conflict do nothing;
+
+
+-- ============================================================
+-- 7. THERMO X DE TESTE
+-- ============================================================
+
+insert into dispositivos (
+
+    empresa_id,
+
+    numero_serie,
+
+    nome,
+
+    modelo,
+
+    firmware
+
+)
+
+select
+
+    id,
+
+    'THX-00001',
+
+    'ThermoX Ceramica 1',
+
+    'THERMO X',
+
+    '1.1.0'
+
+from empresas
+
+where nome = 'CERAMICA 1'
+
+on conflict (numero_serie) do nothing;
+
+
+-- ============================================================
+-- 8. FORNOS DE TESTE
+-- ============================================================
+
+insert into fornos (
+
+    dispositivo_id,
+
+    numero,
+
+    nome,
+
+    modulo_alutal
+
+)
+
+select
+
+    d.id,
+
+    1,
+
+    'Forno 01',
+
+    1
+
+from dispositivos d
+
+where d.numero_serie = 'THX-00001'
+
+on conflict do nothing;
+
+
+insert into fornos (
+
+    dispositivo_id,
+
+    numero,
+
+    nome,
+
+    modulo_alutal
+
+)
+
+select
+
+    d.id,
+
+    2,
+
+    'Forno 02',
+
+    2
+
+from dispositivos d
+
+where d.numero_serie = 'THX-00001'
+
+on conflict do nothing;
+
+
+insert into fornos (
+
+    dispositivo_id,
+
+    numero,
+
+    nome,
+
+    modulo_alutal
+
+)
+
+select
+
+    d.id,
+
+    3,
+
+    'Forno 03',
+
+    3
+
+from dispositivos d
+
+where d.numero_serie = 'THX-00001'
+
+on conflict do nothing;

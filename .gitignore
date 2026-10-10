@@ -1,0 +1,20 @@
+# Dependências Node.js
+**/node_modules/
+node_modules/
+
+# Credenciais e sessões ativas do WhatsApp (NUNCA SUBIR PARA O GIT POR SEGURANÇA)
+**/auth_info/
+auth_info/
+
+# Logs e arquivos de depuração
+*.log
+**/*.log
+
+# Cache do Sistema Operacional
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Variáveis de ambiente sensíveis
+.env
+.env.local

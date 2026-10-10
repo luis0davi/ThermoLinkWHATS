@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#07121f">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <title>ThermoLink • Painel Master Admin</title>
+
+    <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+    <!-- FontAwesome 6.5.2 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
+
+    <!-- QRCode.js para Geração de Etiquetas de Hardware -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Estilos do Painel Master -->
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+<!-- ========================================================
+     MODAL DE AUTENTICAÇÃO MASTER ADMIN (SE NÃO LOGADO)
+========================================================= -->
+<div id="adminLoginModal" class="admin-auth-overlay hidden">
+    <div class="admin-auth-card">
+        <div class="auth-brand-icon">
+            <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <h2>Painel Master Admin</h2>
+        <p>Acesso exclusivo para controle geral do ecossistema ThermoLink</p>
+
+        <form onsubmit="autenticarMasterAdmin(event)">
+            <div class="form-group">
+                <label>Usuário Master</label>
+                <input type="text" id="adminAuthUser" placeholder="admin" value="admin" required>
+            </div>
+            <div class="form-group">
+                <label>Senha Master</label>
+                <input type="password" id="adminAuthPass" placeholder="Senha master" value="thermolink2026" required>
+            </div>
+            <div id="adminAuthError" class="auth-error-msg hidden">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <span>Credenciais master incorretas.</span>
+            </div>
+            <button type="submit" class="btn-master-login">
+                <span>Entrar no Painel Master</span>
+                <i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </form>
+
+        <div class="auth-footer-note">
+            <i class="fa-solid fa-lock"></i>
+            Área restrita de gestão de clientes, faturamento e hardware.
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================
+     ESTRUTURA PRINCIPAL DO PAINEL MASTER ADMIN
+========================================================= -->
+<div class="admin-layout" id="adminMainLayout">
+
+    <!-- SIDEBAR DE NAVEGAÇÃO -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebarMobile()"></div>
+    <aside class="admin-sidebar" id="adminSidebar">
+        <div class="sidebar-header">
+            <div class="brand-badge-box">
+                <i class="fa-solid fa-fire-flame-curved"></i>
+            </div>
+            <div class="brand-meta">
+                <div class="brand-title">ThermoLink</div>
+                <div class="brand-tag">MASTER ADMIN</div>
+            </div>
+            <button class="btn-sidebar-close-mobile" onclick="toggleSidebarMobile()" aria-label="Fechar Menu">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="nav-section-label">GERAL & NEGÓCIOS</div>
+            <button class="nav-btn active" data-secao="dashboard" onclick="trocarSecaoAdmin('dashboard')">
+                <i class="fa-solid fa-chart-pie"></i>
+                <span>Dashboard Geral</span>
+            </button>
+            <button class="nav-btn" data-secao="clientes" onclick="trocarSecaoAdmin('clientes')">
+                <i class="fa-solid fa-industry"></i>
+                <span>Cerâmicas & Clientes</span>
+                <span class="nav-badge" id="sidebarBadgeClients">3</span>
+            </button>
+
+            <div class="nav-section-label">HARDWARE & PRODUÇÃO</div>
+            <button class="nav-btn" data-secao="dispositivos" onclick="trocarSecaoAdmin('dispositivos')">
+                <i class="fa-solid fa-microchip"></i>
+                <span>Fábrica & QR Codes</span>
+            </button>
+
+            <div class="nav-section-label">GESTÃO & SISTEMA</div>
+            <button class="nav-btn" data-secao="atividade" onclick="trocarSecaoAdmin('atividade')">
+                <i class="fa-solid fa-users-viewfinder"></i>
+                <span>Atividade dos Usuários</span>
+                <span class="nav-badge nav-badge-green" id="sidebarBadgeOnline">--</span>
+            </button>
+            <button class="nav-btn" data-secao="planos" onclick="trocarSecaoAdmin('planos')">
+                <i class="fa-solid fa-sliders"></i>
+                <span>Planos & Retenção</span>
+            </button>
+
+            <div class="nav-section-label">COMUNICAÇÃO & RELATÓRIOS</div>
+            <button class="nav-btn" data-secao="whatsapp" onclick="trocarSecaoAdmin('whatsapp')">
+                <i class="fa-brands fa-whatsapp text-green"></i>
+                <span>WhatsApp & Relatórios</span>
+                <span class="nav-badge nav-badge-green" id="sidebarBadgeWhatsapp">ON</span>
+            </button>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="admin-profile-chip">
+                <div class="admin-avatar">
+                    <i class="fa-solid fa-user-shield"></i>
+                </div>
+                <div class="admin-details">
+                    <b id="adminProfileName">Administrador Master</b>
+                    <span>Superuser Acesso Total</span>
+                </div>
+            </div>
+            <div class="sidebar-actions">
+                <a href="index.html" class="btn-sidebar-link" title="Abrir App do Cliente">
+                    <i class="fa-solid fa-mobile-screen"></i>
+                    <span>Abrir App Cliente</span>
+                </a>
+                <button class="btn-sidebar-logout" onclick="logoutAdmin()" title="Sair do Painel Master">
+                    <i class="fa-solid fa-power-off"></i>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ÁREA DE CONTEÚDO PRINCIPAL -->
+    <main class="admin-main-content">
+
+        <!-- TOPBAR SUPERIOR -->
+        <header class="admin-topbar">
+            <div class="topbar-left">
+                <button class="btn-mobile-sidebar-toggle" onclick="toggleSidebarMobile()">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <div class="page-context">
+                    <h1 id="adminPageHeading">Dashboard Geral</h1>
+                    <span id="adminPageSubheading">Visão executiva, custos de infraestrutura e tráfego em tempo real</span>
+                </div>
+            </div>
+
+            <div class="topbar-right">
+                <div class="server-status-card" title="Status da Conexão Supabase">
+                    <span class="pulse-indicator"></span>
+                    <span>SUPABASE CLOUD: <b>ATIVO</b></span>
+                </div>
+                <button class="btn-action-refresh" onclick="sincronizarDadosAdmin()" title="Sincronizar dados agora">
+                    <i class="fa-solid fa-rotate" id="adminRefreshIcon"></i>
+                    <span>Sincronizar</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- CONTAINER DAS SEÇÕES -->
+        <div class="admin-sections-wrapper">
+
+            <!-- ========================================================
+                 SEÇÃO 1: DASHBOARD GERAL (VISÃO DE NEGÓCIOS & CUSTOS)
+            ========================================================= -->
+            <section id="secDashboard" class="admin-section active">
+                
+                <!-- CARDS DE KPIS DO NEGÓCIO -->
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-icon-box icon-clients">
+                            <i class="fa-solid fa-industry"></i>
+                        </div>
+                        <div class="kpi-body">
+                            <span class="kpi-label">Cerâmicas Cadastradas</span>
+                            <div class="kpi-value" id="kpiTotalClients">--</div>
+                            <div class="kpi-trend trend-up">
+                                <i class="fa-solid fa-arrow-trend-up"></i>
+                                <span id="kpiActiveClientsCount">-- ativas</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="kpi-card">
+                        <div class="kpi-icon-box icon-hardware">
+                            <i class="fa-solid fa-microchip"></i>
+                        </div>
+                        <div class="kpi-body">
+                            <span class="kpi-label">Dispositivos no Brasil</span>
+                            <div class="kpi-value" id="kpiTotalDevices">--</div>
+                            <div class="kpi-trend trend-green">
+                                <i class="fa-solid fa-wifi"></i>
+                                <span id="kpiOnlineDevicesCount">-- transmitindo</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="kpi-card">
+                        <div class="kpi-icon-box icon-revenue">
+                            <i class="fa-solid fa-dollar-sign"></i>
+                        </div>
+                        <div class="kpi-body">
+                            <span class="kpi-label">Faturamento Estimado (MRR)</span>
+                            <div class="kpi-value text-green" id="kpiTotalRevenue">R$ --</div>
+                            <div class="kpi-trend trend-neutral">
+                                <i class="fa-regular fa-credit-card"></i>
+                                <span>Mensalidades SaaS</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="kpi-card">
+                        <div class="kpi-icon-box icon-alerts">
+                            <i class="fa-solid fa-bell"></i>
+                        </div>
+                        <div class="kpi-body">
+                            <span class="kpi-label">Alertas Críticos (24h)</span>
+                            <div class="kpi-value text-orange" id="kpiTotalAlerts">0</div>
+                            <div class="kpi-trend trend-neutral">
+                                <i class="fa-solid fa-shield-check"></i>
+                                <span>Sensores e Faixas</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GRÁFICO DE TRÁFEGO SUPABASE & ATIVIDADE RECENTE -->
+                <div class="dashboard-duo-grid">
+                    <div class="panel-box traffic-panel">
+                        <div class="panel-header">
+                            <div>
+                                <h3>Volume de Leituras Trafegadas (24 Horas)</h3>
+                                <p>Monitoramento de chamadas e consumo do banco de dados Supabase</p>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <div class="tag-pill" id="trafficStatsBadge" title="Total de leituras nas últimas 24 horas">
+                                    <i class="fa-solid fa-database" style="color: var(--orange); margin-right: 4px;"></i>
+                                    <span id="trafficTotal24h">Calculando...</span>
+                                </div>
+                                <div class="tag-pill tag-pill-orange">
+                                    <span class="live-dot-green" style="margin-right: 4px;"></span>
+                                    <span>Tempo Real</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="traffic-chart-wrapper">
+                            <canvas id="trafficChartCanvas"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="panel-box recent-clients-panel">
+                        <div class="panel-header">
+                            <div>
+                                <h3>Atividade Recente das Cerâmicas</h3>
+                                <p>Últimos acessos e transmissão dos fornos</p>
+                            </div>
+                            <button class="btn-text-action" onclick="trocarSecaoAdmin('clientes')">Ver Todas</button>
+                        </div>
+                        <div class="activity-feed-list" id="activityFeedList">
+                            <!-- Gerado dinamicamente -->
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- ========================================================
+                 SEÇÃO 2: GERENCIAMENTO DE CLIENTES (CERÂMICAS)
+            ========================================================= -->
+            <section id="secClientes" class="admin-section hidden">
+                
+                <div class="panel-box">
+                    <div class="panel-header">
+                        <div>
+                            <h3>Cerâmicas e Clientes Conectados</h3>
+                            <p>Gerencie contratos, permissões, senhas e acesse dashboards em modo suporte</p>
+                        </div>
+                        <button class="btn-primary-admin" onclick="abrirModalNovaCeramica()">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Cadastrar Nova Cerâmica</span>
+                        </button>
+                    </div>
+
+                    <!-- BARRA DE FILTROS -->
+                    <div class="table-toolbar">
+                        <div class="search-input-group">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="clientSearchInput" placeholder="Buscar por cerâmica, responsável ou cidade..." oninput="filtrarTabelaClientes(this.value)">
+                        </div>
+                        <div class="filter-pills">
+                            <button class="filter-pill active" onclick="filtrarStatusCliente('all', this)">Todos</button>
+                            <button class="filter-pill" onclick="filtrarStatusCliente('Ativo', this)">Ativos</button>
+                            <button class="filter-pill" onclick="filtrarStatusCliente('Bloqueado', this)">Bloqueados</button>
+                        </div>
+                    </div>
+
+                    <!-- TABELA DE CLIENTES -->
+                    <div class="admin-table-wrapper">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Cerâmica / Cliente</th>
+                                    <th>Responsável</th>
+                                    <th>Localização</th>
+                                    <th>Plano</th>
+                                    <th>Fornos</th>
+                                    <th>Status</th>
+                                    <th>Último Acesso</th>
+                                    <th style="text-align: right;">Ações de Controle</th>
+                                </tr>
+                            </thead>
+                            <tbody id="clientsTableBody">
+                                <!-- Gerado dinamicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- ========================================================
+                 SEÇÃO 3: FÁBRICA DE DISPOSITIVOS & GERADOR DE QR CODE
+            ========================================================= -->
+            <section id="secDispositivos" class="admin-section hidden">
+                
+                <div class="panel-box">
+                    <div class="panel-header">
+                        <div>
+                            <h3>Fábrica e Inventário de Dispositivos ThermoLink</h3>
+                            <p>Cadastre os aparelhos montados, gere QR Codes para as caixas e gerencie a vinculação aos fornos</p>
+                        </div>
+                        <button class="btn-primary-admin" onclick="abrirModalFabricarDispositivo()">
+                            <i class="fa-solid fa-microchip"></i>
+                            <span>Fabricar Novo Dispositivo</span>
+                        </button>
+                    </div>
+
+                    <div class="device-summary-cards">
+                        <div class="dev-summary-pill">
+                            <span class="pill-label">Total Fabricados</span>
+                            <strong id="sumDevTotal">--</strong>
+                        </div>
+                        <div class="dev-summary-pill">
+                            <span class="pill-label text-green">Vinculados & Operando</span>
+                            <strong class="text-green" id="sumDevLinked">--</strong>
+                        </div>
+                        <div class="dev-summary-pill">
+                            <span class="pill-label text-orange">Em Estoque (Prontos)</span>
+                            <strong class="text-orange" id="sumDevStock">--</strong>
+                        </div>
+                    </div>
+
+                    <!-- TABELA DE DISPOSITIVOS -->
+                    <div class="admin-table-wrapper">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Número de Série</th>
+                                    <th>Modelo Hardware</th>
+                                    <th>Status Estoque</th>
+                                    <th>Cerâmica Vinculada</th>
+                                    <th>Forno Associado</th>
+                                    <th>Data Fabricação</th>
+                                    <th style="text-align: right;">QR Code & Controle</th>
+                                </tr>
+                            </thead>
+                            <tbody id="devicesTableBody">
+                                <!-- Gerado dinamicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- ========================================================
+                 SEÇÃO 4: MONITORAMENTO DE ATIVIDADE DOS USUÁRIOS
+            ========================================================= -->
+            <section id="secAtividade" class="admin-section hidden">
+                
+                <!-- CARDS DE KPIS DE ATIVIDADE -->
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-icon-box icon-online-pulse">
+                            <i class="fa-solid fa-users"></i>
+                        </div>
+                        <div class="kpi-body">
+                            <span class="kpi-label">Usuários Online Agora</span>
+                            <div class="kpi-value text-green" id="kpiUsersOnline">0</div>
+                            <div class="kpi-trend trend-green">
+                                <span class="live-dot-green"></span>
+                                <span>Ativos nos últimos 5 min</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="kpi-card">
+                        <div class="kpi-icon-box icon-access-count">
+                            <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                        </div>
+                        <div class="kpi-body">
+                            <span class="kpi-label">Total de Acessos Registrados</span>
+                            <div class="kpi-value" id="kpiTotalAccesses">--</div>
+                            <div class="kpi-trend trend-neutral">
+                                <i class="fa-regular fa-calendar-check"></i>
+                                <span id="kpiPeriodAccessSub">Período: 7 dias</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="kpi-card">
+                        <div class="kpi-icon-box icon-active-users">
+                            <i class="fa-solid fa-user-check"></i>
+                        </div>
+                        <div class="kpi-body">
+                            <span class="kpi-label">Usuários Ativos no Período</span>
+                            <div class="kpi-value text-blue" id="kpiActiveUsersCount">--</div>
+                            <div class="kpi-trend trend-neutral">
+                                <i class="fa-solid fa-industry"></i>
+                                <span id="kpiActivePercentSub">Engajamento ativo</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="kpi-card">
+                        <div class="kpi-icon-box icon-peak-hour">
+                            <i class="fa-solid fa-fire-burner"></i>
+                        </div>
+                        <div class="kpi-body">
+                            <span class="kpi-label">Horário de Maior Atividade</span>
+                            <div class="kpi-value text-orange" id="kpiPeakHour">--</div>
+                            <div class="kpi-trend trend-neutral">
+                                <i class="fa-solid fa-chart-simple"></i>
+                                <span>Pico de monitoramento</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GRÁFICOS: ACESSOS POR DIA & HORÁRIOS DE ATIVIDADE -->
+                <div class="dashboard-duo-grid">
+                    <div class="panel-box">
+                        <div class="panel-header">
+                            <div>
+                                <h3>Quantidade de Acessos por Dia</h3>
+                                <p>Volume diário de entradas no sistema no período selecionado</p>
+                            </div>
+                            <div class="tag-pill" id="badgeChartDailyPeriod">Últimos 7 dias</div>
+                        </div>
+                        <div class="chart-wrapper-admin">
+                            <canvas id="dailyAccessChartCanvas"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="panel-box">
+                        <div class="panel-header">
+                            <div>
+                                <h3>Horários de Maior Atividade (24 Horas)</h3>
+                                <p>Distribuição das entradas ao longo do dia para identificar picos de uso</p>
+                            </div>
+                            <div class="tag-pill tag-pill-orange">Turnos Operacionais</div>
+                        </div>
+                        <div class="chart-wrapper-admin">
+                            <canvas id="hourlyDistributionChartCanvas"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PAINEL PRINCIPAL: TABELA DE USUÁRIOS E HISTÓRICO DE ACESSOS -->
+                <div class="panel-box">
+                    <div class="panel-header">
+                        <div>
+                            <h3>Usuários & Registro de Acessos ao Sistema</h3>
+                            <p>Acompanhe status online/offline, data do último acesso, frequência, dispositivos e IPs</p>
+                        </div>
+                        <div class="panel-actions-header">
+                            <button class="btn-secondary-admin" onclick="carregarAcessosUsuariosSupabase(true)">
+                                <i class="fa-solid fa-rotate" id="refreshAccessesIcon"></i>
+                                <span>Atualizar Acessos</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- BARRA DE FERRAMENTAS, FILTROS DE PERÍODO & BUSCA -->
+                    <div class="activity-toolbar">
+                        <!-- Filtros por Período -->
+                        <div class="filter-group-segmented">
+                            <span class="filter-group-label"><i class="fa-regular fa-calendar"></i> Período:</span>
+                            <div class="filter-pills">
+                                <button class="filter-pill" id="btnPeriodToday" onclick="filtrarPeriodoAtividade('today', this)">Hoje</button>
+                                <button class="filter-pill active" id="btnPeriod7d" onclick="filtrarPeriodoAtividade('7d', this)">7 Dias</button>
+                                <button class="filter-pill" id="btnPeriod30d" onclick="filtrarPeriodoAtividade('30d', this)">30 Dias</button>
+                                <button class="filter-pill" id="btnPeriodCustom" onclick="filtrarPeriodoAtividade('custom', this)">Personalizado</button>
+                            </div>
+                        </div>
+
+                        <!-- Inputs de data personalizada (revelados quando 'Personalizado' está ativo) -->
+                        <div class="custom-date-inputs hidden" id="boxCustomDates">
+                            <input type="date" id="activityStartDate" title="Data Inicial">
+                            <span>até</span>
+                            <input type="date" id="activityEndDate" title="Data Final">
+                            <button class="btn-filter-apply" onclick="aplicarFiltroDataPersonalizada()">Aplicar</button>
+                        </div>
+
+                        <!-- Ordenação -->
+                        <div class="sort-group">
+                            <span class="filter-group-label"><i class="fa-solid fa-arrow-down-wide-short"></i> Ordenar:</span>
+                            <select id="activitySortSelect" class="admin-select" onchange="alterarOrdenacaoAtividade(this.value)">
+                                <option value="lastAccessDesc">Último Acesso (Mais recente)</option>
+                                <option value="lastAccessAsc">Último Acesso (Mais antigo)</option>
+                                <option value="accessCountDesc">Quantidade de Acessos (Maior)</option>
+                                <option value="accessCountAsc">Quantidade de Acessos (Menor)</option>
+                                <option value="nameAsc">Nome do Usuário (A-Z)</option>
+                            </select>
+                        </div>
+
+                        <!-- Busca Textual -->
+                        <div class="search-input-group search-flex-grow">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="activitySearchInput" placeholder="Buscar por usuário, cerâmica, IP ou dispositivo..." oninput="filtrarTabelaAtividade(this.value)">
+                        </div>
+                    </div>
+
+                    <!-- TABELA DE USUÁRIOS & ACESSOS -->
+                    <div class="admin-table-wrapper">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Usuário / Cerâmica</th>
+                                    <th>Status de Conexão</th>
+                                    <th>Último Acesso</th>
+                                    <th>Data de Login</th>
+                                    <th>Qtd. Acessos</th>
+                                    <th>Dispositivo & Navegador</th>
+                                    <th>IP de Acesso</th>
+                                    <th style="text-align: right;">Auditoria</th>
+                                </tr>
+                            </thead>
+                            <tbody id="userActivityTableBody">
+                                <!-- Preenchido dinamicamente via admin.js -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- ========================================================
+                 SEÇÃO 5: CONFIGURAÇÕES DE PLANOS, LIMITES E FATURAMENTO
+            ========================================================= -->
+            <section id="secPlanos" class="admin-section hidden">
+                
+                <div class="panel-box">
+                    <div class="panel-header">
+                        <div>
+                            <h3>Planos, Limites e Retenção do Banco de Dados</h3>
+                            <p>Defina regras de faturamento, quantidade de fornos permitidos e tempo de expiração do histórico</p>
+                        </div>
+                    </div>
+
+                    <div class="plans-grid">
+                        <div class="plan-card">
+                            <div class="plan-card-header">
+                                <div>
+                                    <h4>Plano Básico</h4>
+                                    <span class="plan-subtitle">Pequenas Cerâmicas</span>
+                                </div>
+                                <div class="plan-price">R$ 149<span>/mês</span></div>
+                            </div>
+                            <ul class="plan-features">
+                                <li><i class="fa-solid fa-check text-green"></i> Até <b>2 Fornos</b> simultâneos</li>
+                                <li><i class="fa-solid fa-check text-green"></i> Retenção de <b>3 Meses</b> de leituras</li>
+                                <li><i class="fa-solid fa-check text-green"></i> Alertas por navegador</li>
+                                <li><i class="fa-solid fa-check text-green"></i> Gráficos em tempo real</li>
+                            </ul>
+                            <button class="btn-plan-edit" onclick="editarPlano('basico')">Ajustar Regras</button>
+                        </div>
+
+                        <div class="plan-card plan-featured">
+                            <div class="plan-badge">MAIS POPULAR</div>
+                            <div class="plan-card-header">
+                                <div>
+                                    <h4>Plano Profissional</h4>
+                                    <span class="plan-subtitle">Médias Cerâmicas</span>
+                                </div>
+                                <div class="plan-price">R$ 299<span>/mês</span></div>
+                            </div>
+                            <ul class="plan-features">
+                                <li><i class="fa-solid fa-check text-green"></i> Até <b>6 Fornos</b> simultâneos</li>
+                                <li><i class="fa-solid fa-check text-green"></i> Retenção de <b>6 Meses</b> de leituras</li>
+                                <li><i class="fa-solid fa-check text-green"></i> Suporte técnico prioritário NOC</li>
+                                <li><i class="fa-solid fa-check text-green"></i> Curva térmica multicanal (1000 pts)</li>
+                            </ul>
+                            <button class="btn-plan-edit btn-plan-primary" onclick="editarPlano('pro')">Ajustar Regras</button>
+                        </div>
+
+                        <div class="plan-card">
+                            <div class="plan-card-header">
+                                <div>
+                                    <h4>Plano Enterprise</h4>
+                                    <span class="plan-subtitle">Grandes Indústrias Cerâmicas</span>
+                                </div>
+                                <div class="plan-price">R$ 599<span>/mês</span></div>
+                            </div>
+                            <ul class="plan-features">
+                                <li><i class="fa-solid fa-check text-green"></i> <b>Fornos Ilimitados</b></li>
+                                <li><i class="fa-solid fa-check text-green"></i> Retenção de <b>12 Meses</b> de histórico</li>
+                                <li><i class="fa-solid fa-check text-green"></i> Atualizações OTA prioritárias</li>
+                                <li><i class="fa-solid fa-check text-green"></i> Relatórios executivos de queima</li>
+                            </ul>
+                            <button class="btn-plan-edit" onclick="editarPlano('enterprise')">Ajustar Regras</button>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- ========================================================
+                 SEÇÃO 6: WHATSAPP GATEWAY & RELATÓRIOS DIÁRIOS
+            ========================================================= -->
+            <section id="secWhatsapp" class="admin-section hidden">
+
+                <!-- BARRA SUPERIOR: STATUS E CONFIGURAÇÃO DO GATEWAY -->
+                <div class="panel-box" style="margin-bottom: 20px; background: linear-gradient(135deg, #091528, #0e1e38); border-color: #1e3a5f;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+                        <div style="display: flex; align-items: center; gap: 14px;">
+                            <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); display: flex; align-items: center; justify-content: center; font-size: 24px; color: #34d399;">
+                                <i class="fa-brands fa-whatsapp"></i>
+                            </div>
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <h3 style="color: white; font-size: 18px; margin: 0;">Gateway WhatsApp ThermoLink</h3>
+                                    <span id="waAdminStatusBadge" class="badge-status-online">Verificando...</span>
+                                </div>
+                                <p style="color: var(--text-muted); font-size: 13px; margin-top: 2px;" id="waAdminSubheader">
+                                    Disparo automático de telemetria diária dos fornos cerâmicos
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- OPÇÕES DE GATEWAY (LOCAL / GITHUB / NUVEM) -->
+                        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.3); padding: 5px 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+                                <i class="fa-solid fa-server" style="color: #64748b; font-size: 12px;"></i>
+                                <span style="font-size: 11px; color: #94a3b8;">Servidor:</span>
+                                <input type="text" id="waGatewayUrlInput" value="http://localhost:3333" style="background: transparent; border: none; color: #38bdf8; font-size: 12px; font-family: monospace; outline: none; width: 170px;" title="URL do Gateway WhatsApp">
+                                <button class="btn-action-icon" onclick="salvarUrlGatewayAdmin()" title="Salvar URL do Gateway"><i class="fa-solid fa-check text-green"></i></button>
+                            </div>
+                            <button class="btn-primary-admin" onclick="carregarSecaoWhatsappAdmin()" style="padding: 8px 14px; font-size: 12px; background: #1e293b; color: white;">
+                                <i class="fa-solid fa-rotate-right"></i> Atualizar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CARD DE CONEXÃO & QR CODE DIRETO NO ADMIN -->
+                <div class="panel-box" id="waPairingPanel" style="margin-bottom: 24px; border: 1px solid #1e3a5f;">
+                    <!-- Bloco 1: Quando aguardando QR Code -->
+                    <div id="waQrCodeBlock" style="display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap;">
+                        <div style="max-width: 460px;">
+                            <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 12px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; font-size: 12px; font-weight: 700; margin-bottom: 10px;">
+                                <i class="fa-solid fa-qrcode"></i> Leitura de QR Code Necessária
+                            </div>
+                            <h3 style="color: white; font-size: 18px; margin-bottom: 8px;">Conecte o WhatsApp do ThermoLink</h3>
+                            <p style="color: var(--text-muted); font-size: 13px; line-height: 1.7; margin-bottom: 16px;">
+                                1. Abra o WhatsApp no smartphone que enviará os relatórios.<br>
+                                2. Toque nos <b>3 pontinhos</b> (ou Ajustes) ➡️ <b>Aparelhos conectados</b>.<br>
+                                3. Toque em <b>Conectar um aparelho</b> e aponte a câmera para o QR Code ao lado.
+                            </p>
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                <button class="btn-primary-admin" onclick="forcarNovoQrCodeAdmin()">
+                                    <i class="fa-solid fa-rotate-right"></i> Gerar Novo QR Code
+                                </button>
+                                <a href="http://localhost:3333" target="_blank" class="btn-primary-admin" style="background: #1e293b; color: white;">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i> Abrir Painel Avulso
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Caixa do QR Code com contraste alto -->
+                        <div style="background: white; padding: 14px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; min-width: 220px; min-height: 220px;">
+                            <img id="waAdminQrImage" src="" alt="QR Code WhatsApp" style="width: 200px; height: 200px; object-fit: contain; display: none;">
+                            <div id="waAdminQrLoading" style="text-align: center; color: #64748b; font-size: 12px;">
+                                <i class="fa-solid fa-spinner fa-spin" style="font-size: 32px; color: var(--orange); margin-bottom: 10px;"></i>
+                                <p>Carregando QR Code...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bloco 2: Quando Conectado -->
+                    <div id="waConnectedBlock" style="display: none; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
+                        <div style="display: flex; align-items: center; gap: 16px;">
+                            <div style="width: 56px; height: 56px; border-radius: 14px; background: rgba(16, 185, 129, 0.2); border: 2px solid #10b981; display: flex; align-items: center; justify-content: center; font-size: 28px; color: #10b981;">
+                                <i class="fa-solid fa-check"></i>
+                            </div>
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <b style="color: white; font-size: 17px;">WhatsApp Conectado com Sucesso!</b>
+                                    <span class="badge-status-online">Ativo</span>
+                                </div>
+                                <p style="color: #34d399; font-size: 15px; font-weight: 800; margin-top: 4px;" id="waConnectedPhoneDisplay">+55 ...</p>
+                                <p style="color: var(--text-muted); font-size: 12px; margin-top: 4px;">
+                                    Sessão ativa e autenticada. Os relatórios diários de queima serão entregues a partir deste número.
+                                </p>
+                            </div>
+                        </div>
+
+                        <button class="btn-primary-admin" onclick="desconectarWhatsappAdmin()" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i> Desconectar / Trocar Chip
+                        </button>
+                    </div>
+                </div>
+
+                <!-- CARDS DE STATUS E MÉTRICAS -->
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-icon-box" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">
+                            <i class="fa-brands fa-whatsapp"></i>
+                        </div>
+                        <div class="kpi-body">
+                            <span class="kpi-label">Status da Conexão</span>
+                            <div class="kpi-value text-green" id="waAdminStatus">Verificando...</div>
+                            <div class="kpi-trend trend-green">
+                                <i class="fa-solid fa-circle-check"></i>
+                                <span id="waAdminPhone">+55 ...</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="kpi-card">
+                        <div class="kpi-icon-box" style="background: rgba(249, 115, 22, 0.15); color: #fb923c;">
+                            <i class="fa-solid fa-address-book"></i>
+                        </div>
+                        <div class="kpi-body">
+                            <span class="kpi-label">Contatos Cadastrados</span>
+                            <div class="kpi-value text-orange" id="waAdminTotalContatos">0</div>
+                            <div class="kpi-trend trend-neutral">
+                                <span id="waAdminContatosAtivos">0 ativos para envio</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="kpi-card">
+                        <div class="kpi-icon-box" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">
+                            <i class="fa-solid fa-clock"></i>
+                        </div>
+                        <div class="kpi-body">
+                            <span class="kpi-label">Horário do Disparo Diário</span>
+                            <div class="kpi-value text-blue" id="waAdminHorarioDisplay">18:00</div>
+                            <div class="kpi-trend trend-neutral">
+                                <span id="waAdminStatusAuto">Automação Ativa</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="kpi-card">
+                        <div class="kpi-icon-box" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </div>
+                        <div class="kpi-body">
+                            <span class="kpi-label">Disparados Hoje</span>
+                            <div class="kpi-value" id="waAdminDisparadosHoje">0</div>
+                            <div class="kpi-trend trend-green">
+                                <span>Relatórios enviados</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CONTROLE DO AGENDADOR & DISPARO GERAL -->
+                <div class="panel-box" style="margin-bottom: 24px;">
+                    <div class="panel-header">
+                        <div>
+                            <h3>Programação de Envio Diário Automático</h3>
+                            <p>O sistema consulta a telemetria dos fornos e dispara o resumo diário automaticamente para cada cerâmica</p>
+                        </div>
+                        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                            <button class="btn-primary-admin" onclick="dispararRelatoriosTodosAdmin()" style="background: linear-gradient(135deg, #10b981, #059669);">
+                                <i class="fa-solid fa-paper-plane"></i>
+                                <span>Disparar Agora para Todos os Clientes</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 12px; padding: 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+                        <div style="display: flex; align-items: center; gap: 14px;">
+                            <label class="switch">
+                                <input type="checkbox" id="waAdminCheckAuto" onchange="salvarConfigWhatsappAdmin()">
+                                <span class="slider"></span>
+                            </label>
+                            <div>
+                                <b style="color: white; font-size: 14px;">Envio Automático Diário de Queima</b>
+                                <p style="color: var(--text-muted); font-size: 12px;">Dispara para os números cadastrados na hora configurada</p>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">Horário Diário:</span>
+                            <input type="time" id="waAdminInputHorario" value="18:00" style="background: #07121f; border: 1px solid var(--border-color); border-radius: 8px; color: white; padding: 8px 12px; font-weight: 700; font-size: 14px;">
+                            <button class="btn-primary-admin" onclick="salvarConfigWhatsappAdmin()" style="padding: 8px 16px; font-size: 13px;">Salvar Horário</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SEÇÃO PRINCIPAL: CONTATOS AGRUPADOS POR CERÂMICA -->
+                <div class="panel-box">
+                    <div class="panel-header">
+                        <div>
+                            <h3>Contatos Vinculados por Cerâmica Cliente</h3>
+                            <p>Organize quem recebe o relatório em cada fábrica cerâmica. Você pode adicionar múltiplos contatos por cliente.</p>
+                        </div>
+                        <button class="btn-primary-admin" onclick="abrirModalNovoContatoWhatsapp()">
+                            <i class="fa-solid fa-user-plus"></i>
+                            <span>+ Novo Contato WhatsApp</span>
+                        </button>
+                    </div>
+
+                    <!-- BARRA DE PESQUISA & FILTROS POR CERÂMICA -->
+                    <div class="table-toolbar">
+                        <div class="search-input-group">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="waSearchContato" placeholder="Buscar por cerâmica, responsável ou telefone..." oninput="filtrarContatosWhatsappAdmin(this.value)">
+                        </div>
+                        <div class="filter-pills" id="waCeramicasFilterPills">
+                            <!-- Preenchido dinamicamente com as cerâmicas -->
+                        </div>
+                    </div>
+
+                    <!-- CONTAINER DOS CARDS POR CERÂMICA -->
+                    <div id="waCeramicasCardsContainer" style="display: flex; flex-direction: column; gap: 18px; margin-top: 14px;">
+                        <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                            <i class="fa-solid fa-spinner fa-spin" style="font-size: 28px; color: var(--orange); margin-bottom: 10px;"></i>
+                            <p>Carregando cerâmicas e contatos...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LOGS RECENTES -->
+                <div class="panel-box" style="margin-top: 24px;">
+                    <div class="panel-header">
+                        <div>
+                            <h3>Histórico de Transmissões Recentes</h3>
+                            <p>Registro das últimas notificações e relatórios entregues</p>
+                        </div>
+                        <button class="btn-plan-edit" onclick="carregarSecaoWhatsappAdmin()">
+                            <i class="fa-solid fa-rotate-right"></i> Atualizar Logs
+                        </button>
+                    </div>
+                    <div id="waAdminLogsBox" style="background: #050a12; border: 1px solid var(--border-color); border-radius: 10px; padding: 14px; font-family: monospace; font-size: 12px; max-height: 180px; overflow-y: auto; color: #94a3b8;">
+                        Carregando logs...
+                    </div>
+                </div>
+
+            </section>
+
+
+
+        </div>
+
+        <!-- BARRA DE NAVEGAÇÃO INFERIOR EXCLUSIVA PARA CELULAR -->
+        <nav class="admin-mobile-nav" id="adminMobileNav">
+            <button class="mobile-nav-item active" data-secao="dashboard" onclick="trocarSecaoAdmin('dashboard')">
+                <i class="fa-solid fa-chart-pie"></i>
+                <span>Geral</span>
+            </button>
+            <button class="mobile-nav-item" data-secao="clientes" onclick="trocarSecaoAdmin('clientes')">
+                <i class="fa-solid fa-industry"></i>
+                <span>Clientes</span>
+            </button>
+            <button class="mobile-nav-item" data-secao="dispositivos" onclick="trocarSecaoAdmin('dispositivos')">
+                <i class="fa-solid fa-microchip"></i>
+                <span>Fábrica</span>
+            </button>
+            <button class="mobile-nav-item" data-secao="atividade" onclick="trocarSecaoAdmin('atividade')">
+                <i class="fa-solid fa-users-viewfinder"></i>
+                <span>Acessos</span>
+            </button>
+            <button class="mobile-nav-item" data-secao="planos" onclick="trocarSecaoAdmin('planos')">
+                <i class="fa-solid fa-sliders"></i>
+                <span>Planos</span>
+            </button>
+            <button class="mobile-nav-item" data-secao="whatsapp" onclick="trocarSecaoAdmin('whatsapp')">
+                <i class="fa-brands fa-whatsapp text-green"></i>
+                <span>WhatsApp</span>
+            </button>
+        </nav>
+
+    </main>
+
+</div>
+
+<!-- ========================================================
+     MODAIS DO PAINEL MASTER
+========================================================= -->
+
+<!-- MODAL 1: CADASTRAR NOVA CERÂMICA -->
+<div id="modalNovaCeramica" class="modal-overlay hidden" onclick="fecharModalAdmin('modalNovaCeramica', event)">
+    <div class="modal-dialog" onclick="event.stopPropagation()">
+        <div class="modal-dialog-header">
+            <h3><i class="fa-solid fa-industry text-orange"></i> Cadastrar Nova Cerâmica Cliente</h3>
+            <button class="btn-close-modal" onclick="fecharModalAdmin('modalNovaCeramica', null)"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <form onsubmit="salvarNovaCeramica(event)">
+            <div class="form-row-duo">
+                <div class="form-group">
+                    <label>Nome da Cerâmica</label>
+                    <input type="text" id="ncNome" placeholder="Ex: Cerâmica Imperial" required>
+                </div>
+                <div class="form-group">
+                    <label>Responsável / Contato</label>
+                    <input type="text" id="ncResp" placeholder="Ex: Marcos Silva" required>
+                </div>
+            </div>
+
+            <div class="form-row-duo">
+                <div class="form-group">
+                    <label>Cidade / Estado</label>
+                    <input type="text" id="ncCidade" placeholder="Ex: Tatuí - SP" required>
+                </div>
+                <div class="form-group">
+                    <label>Plano Contratado</label>
+                    <select id="ncPlano">
+                        <option value="Profissional">Plano Profissional (Até 6 fornos - R$ 299/mês)</option>
+                        <option value="Básico">Plano Básico (Até 2 fornos - R$ 149/mês)</option>
+                        <option value="Enterprise">Plano Enterprise (Ilimitado - R$ 599/mês)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row-duo">
+                <div class="form-group">
+                    <label>Usuário de Acesso do Cliente</label>
+                    <input type="text" id="ncUser" placeholder="Ex: imperial" required>
+                </div>
+                <div class="form-group">
+                    <label>Senha de Acesso</label>
+                    <div class="pass-gen-box">
+                        <input type="text" id="ncPass" placeholder="Senha" required>
+                        <button type="button" class="btn-gen-code" onclick="gerarSenhaAleatoriaCliente()">Gerar</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-dialog-actions">
+                <button type="button" class="btn-admin-cancel" onclick="fecharModalAdmin('modalNovaCeramica', null)">Cancelar</button>
+                <button type="submit" class="btn-admin-submit">Salvar e Ativar Cerâmica</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: BLOQUEAR ACESSO DA CERÂMICA -->
+<div id="modalBloquearCliente" class="modal-overlay hidden" onclick="fecharModalAdmin('modalBloquearCliente', event)">
+    <div class="modal-dialog" onclick="event.stopPropagation()">
+        <div class="modal-dialog-header">
+            <h3><i class="fa-solid fa-lock" style="color: #f43f5e;"></i> Bloquear Acesso da Cerâmica</h3>
+            <button class="btn-close-modal" onclick="fecharModalAdmin('modalBloquearCliente', null)"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <form onsubmit="confirmarBloqueioCliente(event)">
+            <input type="hidden" id="bloqClienteId">
+            <div class="form-group">
+                <label>Cerâmica Selecionada</label>
+                <input type="text" id="bloqClienteNome" readonly style="background: rgba(255,255,255,0.06); font-weight: 700; color: #ffffff;">
+            </div>
+
+            <div class="form-group">
+                <label>Motivo do Bloqueio (Mensagem que aparecerá para o cliente)</label>
+                <textarea id="bloqMotivoTexto" rows="4" placeholder="Escreva o motivo da suspensão..." required style="width: 100%; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px; padding: 12px; color: #ffffff; font-family: inherit; font-size: 13px; resize: vertical; line-height: 1.5;"></textarea>
+                <span style="font-size: 11px; color: #94a3b8; display: block; margin-top: 5px;">
+                    O cliente conseguirá abrir o aplicativo, mas verá esta notificação na frente impedindo o acesso aos dados até a regularização.
+                </span>
+            </div>
+
+            <div class="modal-dialog-actions">
+                <button type="button" class="btn-admin-cancel" onclick="fecharModalAdmin('modalBloquearCliente', null)">Cancelar</button>
+                <button type="submit" class="btn-admin-submit" style="background: #e11d48; border-color: #f43f5e;">
+                    <i class="fa-solid fa-lock"></i>
+                    <span>Confirmar e Bloquear</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL 2: FABRICAR DISPOSITIVO & ETIQUETA QR CODE -->
+<div id="modalFabricarDispositivo" class="modal-overlay hidden" onclick="fecharModalAdmin('modalFabricarDispositivo', event)">
+    <div class="modal-dialog" onclick="event.stopPropagation()">
+        <div class="modal-dialog-header">
+            <h3><i class="fa-solid fa-microchip text-orange"></i> Fabricar e Registrar Dispositivo</h3>
+            <button class="btn-close-modal" onclick="fecharModalAdmin('modalFabricarDispositivo', null)"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <form onsubmit="salvarNovoDispositivo(event)">
+            <div class="form-row-duo">
+                <div class="form-group">
+                    <label>Número de Série do Aparelho (Serial)</label>
+                    <div class="pass-gen-box">
+                        <input type="text" id="devSerial" placeholder="Ex: THX-00001 ou TLK-2026-0001" required>
+                        <button type="button" class="btn-gen-code" onclick="gerarSerialTHX()" title="Gerar Serial padrão ThermoX ESP (THX-XXXXX)">THX</button>
+                        <button type="button" class="btn-gen-code" onclick="gerarSerialHardware()" title="Gerar Serial padrão TLK">TLK</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Modelo do Hardware</label>
+                    <select id="devModelo">
+                        <option value="TLK-ESP8266-ALUTAL">ThermoLink ESP8266 + Alutal RS485 (ThermoX V4)</option>
+                        <option value="TLK-ESP32-DUAL">ThermoLink ESP32 Dual-Channel Industrial</option>
+                        <option value="TLK-ESP32-PRO">ThermoLink ESP32 Pro MAX6675</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row-duo">
+                <div class="form-group">
+                    <label>Vincular Imediatamente a uma Cerâmica?</label>
+                    <select id="devCeramicaVinculo">
+                        <option value="">-- Deixar em Estoque (Disponível) --</option>
+                        <!-- Popula dinamicamente com as cerâmicas cadastradas -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Número do Módulo / Forno</label>
+                    <input type="number" id="devModuloNum" min="1" max="31" placeholder="Ex: 1">
+                </div>
+            </div>
+
+            <div class="modal-dialog-actions">
+                <button type="button" class="btn-admin-cancel" onclick="fecharModalAdmin('modalFabricarDispositivo', null)">Cancelar</button>
+                <button type="submit" class="btn-admin-submit">Salvar e Gerar QR Code</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: VINCULAR DISPOSITIVO EXISTENTE À CERÂMICA -->
+<div id="modalVincularDispositivo" class="modal-overlay hidden" onclick="fecharModalAdmin('modalVincularDispositivo', event)">
+    <div class="modal-dialog" onclick="event.stopPropagation()">
+        <div class="modal-dialog-header">
+            <h3><i class="fa-solid fa-link text-orange"></i> Vincular Dispositivo à Cerâmica</h3>
+            <button class="btn-close-modal" onclick="fecharModalAdmin('modalVincularDispositivo', null)"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <form onsubmit="salvarVinculoDispositivo(event)">
+            <input type="hidden" id="vincSerialOriginal">
+            <div class="form-group">
+                <label>Dispositivo Selecionado (Serial / Identidade)</label>
+                <input type="text" id="vincSerial" readonly style="background:rgba(255,255,255,0.06); font-family:var(--font-mono); color:#f97316; font-weight:700; font-size:15px; border-color:rgba(249,115,22,0.4);">
+            </div>
+
+            <div class="form-row-duo">
+                <div class="form-group">
+                    <label>Cerâmica que Usará este Aparelho</label>
+                    <select id="vincCeramica" required>
+                        <!-- Popula dinamicamente com as cerâmicas cadastradas -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Associar ao Forno / Módulo nº</label>
+                    <input type="number" id="vincModuloNum" min="1" max="31" placeholder="Ex: 1" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Status Operacional</label>
+                <select id="vincStatus">
+                    <option value="Vinculado">Vinculado & Operando no Forno</option>
+                    <option value="Disponível">Em Estoque (Desvincular)</option>
+                    <option value="Manutenção">Em Manutenção Técnica</option>
+                </select>
+            </div>
+
+            <div class="modal-dialog-actions">
+                <button type="button" class="btn-admin-cancel" onclick="fecharModalAdmin('modalVincularDispositivo', null)">Cancelar</button>
+                <button type="submit" class="btn-admin-submit">
+                    <i class="fa-solid fa-check"></i>
+                    <span>Salvar Vínculo no Banco</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL 3: VISUALIZADOR & IMPRESSÃO DE ETIQUETA QR CODE -->
+<div id="modalEtiquetaQRCode" class="modal-overlay hidden" onclick="fecharModalAdmin('modalEtiquetaQRCode', event)">
+    <div class="modal-dialog modal-dialog-sm" onclick="event.stopPropagation()">
+        <div class="modal-dialog-header">
+            <h3><i class="fa-solid fa-qrcode text-orange"></i> Etiqueta do Aparelho Físico</h3>
+            <button class="btn-close-modal" onclick="fecharModalAdmin('modalEtiquetaQRCode', null)"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <div class="qr-label-printable" id="qrLabelPrintableArea">
+            <div class="qr-label-brand">
+                <i class="fa-solid fa-fire-flame-curved"></i>
+                <span>THERMOLINK</span>
+            </div>
+            <div class="qr-code-canvas-box" id="qrCodeContainer"></div>
+            <div class="qr-serial-box">
+                <div class="qr-serial-code" id="lblSerialText">TLK-2026-0000</div>
+                <div class="qr-serial-sub">Telemetria Térmica Industrial</div>
+            </div>
+        </div>
+
+        <div class="qr-instructions">
+            Imprima esta etiqueta adesiva e cole diretamente na caixa plástica do aparelho antes de enviar ao cliente.
+        </div>
+
+        <div class="modal-dialog-actions">
+            <button type="button" class="btn-admin-cancel" onclick="fecharModalAdmin('modalEtiquetaQRCode', null)">Fechar</button>
+            <button type="button" class="btn-admin-submit" onclick="imprimirEtiquetaQRCode()">
+                <i class="fa-solid fa-print"></i>
+                <span>Imprimir Etiqueta</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 4: HISTÓRICO COMPLETO DE SESSÕES DO USUÁRIO -->
+<div id="modalHistoricoSessoes" class="modal-overlay hidden" onclick="fecharModalAdmin('modalHistoricoSessoes', event)">
+    <div class="modal-dialog modal-dialog-lg" onclick="event.stopPropagation()">
+        <div class="modal-dialog-header">
+            <div>
+                <h3 id="modalHistTitle"><i class="fa-solid fa-clock-rotate-left text-orange"></i> Histórico Detalhado de Acessos</h3>
+                <p id="modalHistSubtitle" class="modal-subheading">Registros de logins e sessões rastreadas</p>
+            </div>
+            <button class="btn-close-modal" onclick="fecharModalAdmin('modalHistoricoSessoes', null)"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <div class="user-hist-summary" id="modalHistUserSummary">
+            <!-- Gerado dinamicamente -->
+        </div>
+
+        <div class="admin-table-wrapper" style="max-height: 380px; overflow-y: auto;">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Data & Horário do Login</th>
+                        <th>Último Contato / Duração</th>
+                        <th>Dispositivo</th>
+                        <th>Navegador & SO</th>
+                        <th>Endereço IP</th>
+                    </tr>
+                </thead>
+                <tbody id="userHistTableBody">
+                    <!-- Gerado dinamicamente -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="modal-dialog-actions">
+            <button type="button" class="btn-admin-cancel" onclick="fecharModalAdmin('modalHistoricoSessoes', null)">Fechar</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: CADASTRAR / EDITAR CONTATO WHATSAPP -->
+<div id="modalContatoWhatsapp" class="modal-overlay hidden" onclick="fecharModalAdmin('modalContatoWhatsapp', event)">
+    <div class="modal-dialog" onclick="event.stopPropagation()">
+        <div class="modal-dialog-header">
+            <h3><i class="fa-brands fa-whatsapp text-green"></i> <span id="waModalTitle">Cadastrar Contato de WhatsApp</span></h3>
+            <button type="button" class="btn-close-modal" onclick="fecharModalAdmin('modalContatoWhatsapp', null)"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <form onsubmit="salvarContatoWhatsappAdmin(event)">
+            <input type="hidden" id="waContatoId">
+
+            <div class="form-group">
+                <label>Cerâmica Cliente</label>
+                <select id="waContatoCeramicaId" required>
+                    <!-- Preenchido dinamicamente com as cerâmicas -->
+                </select>
+            </div>
+
+            <div class="form-row-duo">
+                <div class="form-group">
+                    <label>Nome do Contato</label>
+                    <input type="text" id="waContatoNome" placeholder="Ex: André Rolim" required>
+                </div>
+                <div class="form-group">
+                    <label>Cargo / Função</label>
+                    <input type="text" id="waContatoCargo" placeholder="Ex: Proprietário, Encarregado, Forneiro" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Número do WhatsApp (com DDD)</label>
+                <input type="text" id="waContatoTelefone" placeholder="Ex: 88994463836 ou 5588..." required>
+                <small style="color: var(--text-muted); font-size: 11px; margin-top: 4px; display: block;">
+                    Informe o DDD e o número do celular. O sistema formata automaticamente.
+                </small>
+            </div>
+
+            <div class="form-group" style="display: flex; align-items: center; gap: 12px; margin-top: 14px; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">
+                <label class="switch">
+                    <input type="checkbox" id="waContatoReceber" checked>
+                    <span class="slider"></span>
+                </label>
+                <span style="font-size: 13px; color: white; font-weight: 600;">Receber Relatório Diário de Queima no WhatsApp</span>
+            </div>
+
+            <div class="modal-dialog-actions">
+                <button type="button" class="btn-admin-cancel" onclick="fecharModalAdmin('modalContatoWhatsapp', null)">Cancelar</button>
+                <button type="submit" class="btn-admin-submit" style="background: linear-gradient(135deg, #10b981, #059669);">Salvar Contato</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Scripts do Painel Master -->
+<script src="admin.js"></script>
+
+</body>
+</html>
+
