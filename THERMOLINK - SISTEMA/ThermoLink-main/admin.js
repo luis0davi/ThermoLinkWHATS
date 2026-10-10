@@ -2350,12 +2350,12 @@ document.addEventListener("DOMContentLoaded", () => {
 // ==========================================================================
 
 function getGatewayUrl() {
-    return localStorage.getItem("thermolink_wa_gateway_url") || "http://localhost:3333";
+    return localStorage.getItem("thermolink_wa_gateway_url") || "https://thermolink-whatsapp.onrender.com";
 }
 
 function salvarUrlGatewayAdmin() {
     const input = $("waGatewayUrlInput");
-    const url = (input ? input.value : "").trim() || "http://localhost:3333";
+    const url = (input ? input.value : "").trim() || "https://thermolink-whatsapp.onrender.com";
     localStorage.setItem("thermolink_wa_gateway_url", url);
     mostrarToastFeedback("URL do Gateway WhatsApp salva!", "success");
     carregarSecaoWhatsappAdmin();
