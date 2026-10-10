@@ -18,8 +18,23 @@ import makeWASocket, {
 } from '@whiskeysockets/baileys';
 import { createClient } from '@supabase/supabase-js';
 
+process.env.TZ = 'America/Sao_Paulo';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// ==============================================================
+// GESTÃO DE HORÁRIO OFICIAL (BRASÍLIA / GMT-3)
+// ==============================================================
+const TIMEZONE_BRASIL = 'America/Sao_Paulo';
+
+function getAgoraBrasil() {
+  const agora = new Date();
+  const dataFormatada = agora.toLocaleDateString('pt-BR', { timeZone: TIMEZONE_BRASIL });
+  const horaFormatada = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: TIMEZONE_BRASIL });
+  const horaSegundoFormatada = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: TIMEZONE_BRASIL });
+  return { agora, dataFormatada, horaFormatada, horaSegundoFormatada };
+}
 
 // ==============================================================
 // CONFIGURAÇÃO SUPABASE (THERMOLINK OFICIAL)
@@ -29,7 +44,7 @@ const SUPABASE_ANON_KEY = 'sb_publishable_gJiVQXVjiuSPY3vHt2f8OA_CiES-4Ak';
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const app = express();
-const PORT = 3333;
+const PORT = process.env.PORT || 3333;
 
 app.use(cors());
 app.use(express.json());
@@ -175,10 +190,11 @@ function getLogs() {
 }
 
 function addLog(tipo, mensagem, detalhe = null) {
+  const { dataFormatada, horaSegundoFormatada } = getAgoraBrasil();
   const logItem = {
     id: Date.now() + Math.random(),
-    horario: new Date().toLocaleTimeString('pt-BR'),
-    data: new Date().toLocaleDateString('pt-BR'),
+    horario: horaSegundoFormatada,
+    data: dataFormatada,
     tipo, // 'info' | 'success' | 'warn' | 'error'
     mensagem,
     detalhe
@@ -374,9 +390,7 @@ async function resolverJidValido(numeroBruto) {
 // GERADOR DE RELATÓRIO DIÁRIO DE FORNOS (TELEMETRIA REAL)
 // ==============================================================
 async function gerarTextoRelatorio(ceramicaId = null, modo = 'real') {
-  const agora = new Date();
-  const dataFormatada = agora.toLocaleDateString('pt-BR');
-  const horaFormatada = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const { dataFormatada, horaFormatada } = getAgoraBrasil();
 
   let ceramicaNome = 'Cerâmica Cliente';
   let responsavel = 'Gestor';
@@ -542,17 +556,15 @@ async function processarDisparoAutomaticoDiario() {
   const cfg = getConfig();
   if (!cfg.envio_automatico_ativo) return;
 
-  const agora = new Date();
-  const hojeString = agora.toLocaleDateString('pt-BR');
-  const horaMinAtual = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const { dataFormatada: hojeString, horaFormatada: horaMinAtual } = getAgoraBrasil();
 
   // Verifica se o horário bate e se ainda não foi disparado hoje
   if (horaMinAtual === cfg.horario_envio_diario && cfg.ultimo_disparo_data !== hojeString) {
-    addLog('info', `⏰ [Agendador] Iniciando rotina automática de envio diário (${horaMinAtual})...`);
-    await dispararParaTodosOsContatos('Agendamento Automático Diário');
+    addLog('info', `⏰ [Agendador Automático] Disparando rotina diária das ${horaMinAtual} (Horário de Brasília)...`);
     cfg.ultimo_disparo_data = hojeString;
     cfg.ultimo_disparo_hora = horaMinAtual;
     saveConfig(cfg);
+    await dispararParaTodosOsContatos('Agendamento Automático Diário');
   }
 }
 
@@ -597,8 +609,16 @@ async function dispararParaTodosOsContatos(origem = 'Manual') {
   }
 }
 
-// Checagem do agendador a cada 20 segundos
-setInterval(processarDisparoAutomaticoDiario, 20000);
+// Checagem do agendador a cada 10 segundos
+setInterval(processarDisparoAutomaticoDiario, 10000);
+
+// Auto-keepalive a cada 4 minutos para evitar suspensão da nuvem (Render Free Tier)
+setInterval(async () => {
+  try {
+    const renderUrl = process.env.RENDER_EXTERNAL_URL || 'https://thermolink-whatsapp.onrender.com';
+    await fetch(`${renderUrl}/api/status`);
+  } catch (e) {}
+}, 4 * 60 * 1000);
 
 // ==============================================================
 // ROTAS DA API REST (PARA O PAINEL THERMOLINK MASTER ADMIN)
@@ -608,10 +628,13 @@ setInterval(processarDisparoAutomaticoDiario, 20000);
 app.get('/api/status', (req, res) => {
   const cfg = getConfig();
   const contatos = getContatos();
+  const { dataFormatada, horaSegundoFormatada, horaFormatada } = getAgoraBrasil();
   res.json({
     status: connectionStatus,
     qrCodeDataUrl: currentQrCodeDataUrl,
     user: connectedUser,
+    horario_servidor_brasilia: `${dataFormatada} às ${horaSegundoFormatada}`,
+    hora_atual_brasilia: horaFormatada,
     logs: getLogs().slice(0, 30),
     config: cfg,
     contatosCount: contatos.length,
@@ -725,12 +748,13 @@ app.post('/api/config', (req, res) => {
     const cfg = getConfig();
     const { horario_envio_diario, envio_automatico_ativo } = req.body;
     if (horario_envio_diario) {
-      if (horario_envio_diario !== cfg.horario_envio_diario) {
-        cfg.ultimo_disparo_data = null;
-      }
       cfg.horario_envio_diario = horario_envio_diario;
+      cfg.ultimo_disparo_data = null;
     }
-    if (envio_automatico_ativo !== undefined) cfg.envio_automatico_ativo = Boolean(envio_automatico_ativo);
+    if (envio_automatico_ativo !== undefined) {
+      cfg.envio_automatico_ativo = Boolean(envio_automatico_ativo);
+      if (cfg.envio_automatico_ativo) cfg.ultimo_disparo_data = null;
+    }
     saveConfig(cfg);
     addLog('info', `Configurações atualizadas: Horário diário = ${cfg.horario_envio_diario}, Ativo = ${cfg.envio_automatico_ativo}`);
     res.json({ success: true, config: cfg });
