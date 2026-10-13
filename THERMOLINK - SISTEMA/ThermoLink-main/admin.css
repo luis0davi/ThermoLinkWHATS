@@ -2280,4 +2280,547 @@ input:checked + .slider:before {
     color: white;
 }
 
+/* ==========================================================================
+   KPI CARD CLICÁVEL & MODAL STATUS APARELHOS (ONLINE & BYPASS)
+   ========================================================================== */
+.kpi-card-clickable {
+    cursor: pointer;
+    position: relative;
+    border-color: rgba(16, 185, 129, 0.25);
+    background: linear-gradient(145deg, var(--adm-card), rgba(16, 185, 129, 0.04));
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.kpi-card-clickable:hover {
+    transform: translateY(-3px);
+    border-color: rgba(16, 185, 129, 0.5);
+    box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.15);
+}
+
+.kpi-click-hint {
+    font-size: 10px;
+    font-weight: 700;
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.1);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    padding: 2px 7px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.2s;
+}
+
+.kpi-card-clickable:hover .kpi-click-hint {
+    background: rgba(56, 189, 248, 0.2);
+    color: #ffffff;
+}
+
+.icon-online-status {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+/* Modal Status Summary Cards */
+.status-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    margin: 16px 0;
+}
+
+.status-summary-card {
+    background: var(--adm-bg);
+    border: 1px solid var(--adm-border);
+    border-radius: var(--radius-md);
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.status-card-online {
+    border-color: rgba(16, 185, 129, 0.35);
+    background: rgba(16, 185, 129, 0.05);
+}
+
+.status-card-bypass {
+    border-color: rgba(245, 158, 11, 0.35);
+    background: rgba(245, 158, 11, 0.05);
+}
+
+.status-card-total {
+    border-color: rgba(14, 165, 233, 0.35);
+    background: rgba(14, 165, 233, 0.05);
+}
+
+.status-summary-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.status-summary-label {
+    display: block;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.status-summary-num {
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+/* Badges de Status na Tabela */
+.badge-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.badge-status-online {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.badge-status-bypass {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.badge-status-estoque {
+    background: rgba(148, 163, 184, 0.15);
+    color: #94a3b8;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+/* ==========================================================================
+   PAINEL DE VERSÕES DE FIRMWARE DOS DISPOSITIVOS (OTA / GITHUB)
+   ========================================================================== */
+.tag-pill-cyan {
+    background: rgba(14, 165, 233, 0.15);
+    color: #38bdf8;
+    border: 1px solid rgba(14, 165, 233, 0.35);
+}
+
+.firmware-device-item {
+    background: var(--adm-bg);
+    border: 1px solid var(--adm-border);
+    border-radius: var(--radius-sm);
+    padding: 11px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    transition: all 0.2s ease;
+}
+
+.firmware-device-item:hover {
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.firmware-dev-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.firmware-dev-meta b {
+    color: #ffffff;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: monospace;
+}
+
+.firmware-dev-meta span {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.firmware-badge-updated {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.firmware-badge-pending {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.btn-firmware-ota {
+    background: rgba(249, 115, 22, 0.15);
+    color: #fb923c;
+    border: 1px solid rgba(249, 115, 22, 0.3);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.2s;
+    text-decoration: none;
+}
+
+.btn-firmware-ota:hover {
+    background: #f97316;
+    color: #ffffff;
+}
+
+/* ==========================================================================
+   10. RELATÓRIOS & INTELIGÊNCIA ARTIFICIAL DE QUEIMA (IA)
+   ========================================================================== */
+
+.ai-kpi-card {
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.ai-kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+    border-color: rgba(249, 115, 22, 0.3);
+}
+
+.ai-fornos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 18px;
+    margin-top: 14px;
+}
+
+@media (max-width: 768px) {
+    .ai-fornos-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.ai-kiln-card {
+    background: #091727;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.ai-kiln-card:hover {
+    border-color: rgba(249, 115, 22, 0.4);
+    box-shadow: 0 8px 26px rgba(0, 0, 0, 0.35);
+}
+
+.ai-kiln-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding-bottom: 12px;
+}
+
+.ai-kiln-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ai-phase-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.phase-maturacao {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.phase-elevacao {
+    background: rgba(249, 115, 22, 0.15);
+    color: #fb923c;
+    border: 1px solid rgba(249, 115, 22, 0.35);
+}
+
+.phase-secagem {
+    background: rgba(14, 165, 233, 0.15);
+    color: #38bdf8;
+    border: 1px solid rgba(14, 165, 233, 0.35);
+}
+
+.phase-resfriamento {
+    background: rgba(168, 85, 247, 0.15);
+    color: #c084fc;
+    border: 1px solid rgba(168, 85, 247, 0.35);
+}
+
+.phase-patio {
+    background: rgba(100, 116, 139, 0.15);
+    color: #94a3b8;
+    border: 1px solid rgba(100, 116, 139, 0.35);
+}
+
+.ai-temp-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.25);
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.ai-metric-col {
+    display: flex;
+    flex-direction: column;
+}
+
+.ai-metric-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    font-weight: 700;
+}
+
+.ai-metric-val {
+    font-size: 15px;
+    font-weight: 800;
+    color: #ffffff;
+    font-family: var(--font-mono);
+    margin-top: 2px;
+}
+
+/* Barra de Ciclo Térmico */
+.ai-cycle-steps {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: 4px 0;
+}
+
+.ai-cycle-step {
+    flex: 1;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 3px;
+    position: relative;
+    transition: all 0.3s;
+}
+
+.ai-cycle-step.step-completed {
+    background: #0ea5e9;
+}
+
+.ai-cycle-step.step-active {
+    background: #f97316;
+    box-shadow: 0 0 10px rgba(249, 115, 22, 0.6);
+}
+
+/* Caixa de Diagnóstico da IA */
+.ai-insight-box {
+    background: rgba(14, 32, 52, 0.65);
+    border: 1px solid rgba(249, 115, 22, 0.25);
+    border-left: 3px solid var(--orange);
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.ai-insight-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    color: #cbd5e1;
+}
+
+.ai-insight-item i {
+    margin-top: 3px;
+    font-size: 12px;
+}
+
+.ai-insight-item b {
+    color: #ffffff;
+}
+
+.ai-score-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.ai-score-pill.score-excelente {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+}
+
+.ai-score-pill.score-estavel {
+    background: rgba(14, 165, 233, 0.2);
+    color: #38bdf8;
+}
+
+.ai-score-pill.score-alerta {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+}
+
+.ai-score-pill.score-critico {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+}
+
+/* ==========================================================================
+   11. SUB-NAVEGAÇÃO POR ABAS NO WHATSAPP (CONEXÃO, CONTATOS, RELATÓRIOS & IA)
+   ========================================================================== */
+
+.wa-subnav-container {
+    margin-bottom: 22px;
+    background: #091727;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 6px;
+}
+
+.wa-subnav-tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.wa-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 18px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    font-family: inherit;
+}
+
+.wa-tab-btn:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.wa-tab-btn.active {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(14, 165, 233, 0.12));
+    border-color: rgba(16, 185, 129, 0.45);
+    color: #ffffff;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.wa-tab-btn i {
+    font-size: 14px;
+}
+
+.wa-tab-btn.active i {
+    color: #34d399;
+}
+
+.wa-tab-btn.active i.text-orange {
+    color: #f97316;
+}
+
+.wa-tab-btn .tab-badge {
+    padding: 2px 7px;
+    border-radius: var(--radius-full);
+    font-size: 11px;
+    font-weight: 800;
+    background: rgba(255, 255, 255, 0.1);
+    color: #cbd5e1;
+}
+
+.wa-tab-btn .tab-badge-orange {
+    background: rgba(249, 115, 22, 0.2);
+    color: #fb923c;
+    border: 1px solid rgba(249, 115, 22, 0.4);
+}
+
+.wa-tab-btn.active .tab-badge {
+    background: rgba(16, 185, 129, 0.3);
+    color: #34d399;
+}
+
+.wa-subtab-pane {
+    animation: fadeInSubTab 0.25s ease-out;
+}
+
+@keyframes fadeInSubTab {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+
+
+
 

@@ -115,10 +115,6 @@
                 <span>Atividade dos Usuários</span>
                 <span class="nav-badge nav-badge-green" id="sidebarBadgeOnline">--</span>
             </button>
-            <button class="nav-btn" data-secao="planos" onclick="trocarSecaoAdmin('planos')">
-                <i class="fa-solid fa-sliders"></i>
-                <span>Planos & Retenção</span>
-            </button>
 
             <div class="nav-section-label">COMUNICAÇÃO & RELATÓRIOS</div>
             <button class="nav-btn" data-secao="whatsapp" onclick="trocarSecaoAdmin('whatsapp')">
@@ -213,32 +209,21 @@
                                 <span id="kpiOnlineDevicesCount">-- transmitindo</span>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="kpi-card">
-                        <div class="kpi-icon-box icon-revenue">
-                            <i class="fa-solid fa-dollar-sign"></i>
+                    </div>                    <div class="kpi-card kpi-card-clickable" id="kpiCardAparelhosOnline" onclick="abrirModalStatusAparelhos()" title="Clique para ver detalhes dos aparelhos Online, Cerâmicas e Tempo em Bypass">
+                        <div class="kpi-icon-box icon-online-status">
+                            <i class="fa-solid fa-tower-broadcast"></i>
                         </div>
                         <div class="kpi-body">
-                            <span class="kpi-label">Faturamento Estimado (MRR)</span>
-                            <div class="kpi-value text-green" id="kpiTotalRevenue">R$ --</div>
-                            <div class="kpi-trend trend-neutral">
-                                <i class="fa-regular fa-credit-card"></i>
-                                <span>Mensalidades SaaS</span>
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                                <span class="kpi-label">Aparelhos Online (&le; 10 min)</span>
+                                <span class="kpi-click-hint"><i class="fa-solid fa-arrow-up-right-from-square"></i> Detalhes</span>
                             </div>
-                        </div>
-                    </div>
-
-                    <div class="kpi-card">
-                        <div class="kpi-icon-box icon-alerts">
-                            <i class="fa-solid fa-bell"></i>
-                        </div>
-                        <div class="kpi-body">
-                            <span class="kpi-label">Alertas Críticos (24h)</span>
-                            <div class="kpi-value text-orange" id="kpiTotalAlerts">0</div>
-                            <div class="kpi-trend trend-neutral">
-                                <i class="fa-solid fa-shield-check"></i>
-                                <span>Sensores e Faixas</span>
+                            <div class="kpi-value text-green" id="kpiAparelhosOnlineValue">
+                                <span id="kpiOnlineCount">--</span> <span style="font-size: 15px; font-weight: 700; color: #94a3b8;">Online</span>
+                            </div>
+                            <div class="kpi-trend trend-neutral" id="kpiOnlineBypassTrend">
+                                <span class="live-dot-green" style="margin-right: 4px;"></span>
+                                <span id="kpiOnlineSummary">Calculando...</span>
                             </div>
                         </div>
                     </div>
@@ -275,16 +260,28 @@
                         </div>
                     </div>
 
-                    <div class="panel-box recent-clients-panel">
+                    <div class="panel-box firmware-panel">
                         <div class="panel-header">
                             <div>
-                                <h3>Atividade Recente das Cerâmicas</h3>
-                                <p>Últimos acessos e transmissão dos fornos</p>
+                                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                    <h3>Firmware & Versões dos Dispositivos</h3>
+                                    <span class="tag-pill tag-pill-cyan" id="badgeLatestGithubRelease" title="Versão oficial mais recente no GitHub Releases">
+                                        <i class="fa-brands fa-github"></i> <span id="latestReleaseTag">v4.5.7</span>
+                                    </span>
+                                </div>
+                                <p>Auditoria de versões instaladas vs. release mais recente no GitHub</p>
                             </div>
-                            <button class="btn-text-action" onclick="trocarSecaoAdmin('clientes')">Ver Todas</button>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <a href="https://github.com/Luis-Davi-medeiros/ESP8266_ATUALIZA-OE_ThermoLink/releases" target="_blank" rel="noopener noreferrer" class="btn-icon-subtle" title="Abrir Releases no GitHub" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #94a3b8; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; transition: all 0.2s;">
+                                    <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 11px;"></i>
+                                </a>
+                                <button class="btn-icon-subtle" onclick="sincronizarVersoesFirmwareDispositivos(true)" title="Recarregar versões dos dispositivos" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #94a3b8; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
+                                    <i class="fa-solid fa-rotate" id="refreshFirmwareIcon"></i>
+                                </button>
+                            </div>
                         </div>
-                        <div class="activity-feed-list" id="activityFeedList">
-                            <!-- Gerado dinamicamente -->
+                        <div class="firmware-device-list" id="firmwareDeviceList" style="display: flex; flex-direction: column; gap: 10px; max-height: 280px; overflow-y: auto; padding-right: 4px;">
+                            <!-- Gerado dinamicamente via admin.js -->
                         </div>
                     </div>
                 </div>
@@ -572,310 +569,514 @@
 
             </section>
 
-            <!-- ========================================================
-                 SEÇÃO 5: CONFIGURAÇÕES DE PLANOS, LIMITES E FATURAMENTO
-            ========================================================= -->
-            <section id="secPlanos" class="admin-section hidden">
-                
-                <div class="panel-box">
-                    <div class="panel-header">
-                        <div>
-                            <h3>Planos, Limites e Retenção do Banco de Dados</h3>
-                            <p>Defina regras de faturamento, quantidade de fornos permitidos e tempo de expiração do histórico</p>
-                        </div>
-                    </div>
-
-                    <div class="plans-grid">
-                        <div class="plan-card">
-                            <div class="plan-card-header">
-                                <div>
-                                    <h4>Plano Básico</h4>
-                                    <span class="plan-subtitle">Pequenas Cerâmicas</span>
-                                </div>
-                                <div class="plan-price">R$ 149<span>/mês</span></div>
-                            </div>
-                            <ul class="plan-features">
-                                <li><i class="fa-solid fa-check text-green"></i> Até <b>2 Fornos</b> simultâneos</li>
-                                <li><i class="fa-solid fa-check text-green"></i> Retenção de <b>3 Meses</b> de leituras</li>
-                                <li><i class="fa-solid fa-check text-green"></i> Alertas por navegador</li>
-                                <li><i class="fa-solid fa-check text-green"></i> Gráficos em tempo real</li>
-                            </ul>
-                            <button class="btn-plan-edit" onclick="editarPlano('basico')">Ajustar Regras</button>
-                        </div>
-
-                        <div class="plan-card plan-featured">
-                            <div class="plan-badge">MAIS POPULAR</div>
-                            <div class="plan-card-header">
-                                <div>
-                                    <h4>Plano Profissional</h4>
-                                    <span class="plan-subtitle">Médias Cerâmicas</span>
-                                </div>
-                                <div class="plan-price">R$ 299<span>/mês</span></div>
-                            </div>
-                            <ul class="plan-features">
-                                <li><i class="fa-solid fa-check text-green"></i> Até <b>6 Fornos</b> simultâneos</li>
-                                <li><i class="fa-solid fa-check text-green"></i> Retenção de <b>6 Meses</b> de leituras</li>
-                                <li><i class="fa-solid fa-check text-green"></i> Suporte técnico prioritário NOC</li>
-                                <li><i class="fa-solid fa-check text-green"></i> Curva térmica multicanal (1000 pts)</li>
-                            </ul>
-                            <button class="btn-plan-edit btn-plan-primary" onclick="editarPlano('pro')">Ajustar Regras</button>
-                        </div>
-
-                        <div class="plan-card">
-                            <div class="plan-card-header">
-                                <div>
-                                    <h4>Plano Enterprise</h4>
-                                    <span class="plan-subtitle">Grandes Indústrias Cerâmicas</span>
-                                </div>
-                                <div class="plan-price">R$ 599<span>/mês</span></div>
-                            </div>
-                            <ul class="plan-features">
-                                <li><i class="fa-solid fa-check text-green"></i> <b>Fornos Ilimitados</b></li>
-                                <li><i class="fa-solid fa-check text-green"></i> Retenção de <b>12 Meses</b> de histórico</li>
-                                <li><i class="fa-solid fa-check text-green"></i> Atualizações OTA prioritárias</li>
-                                <li><i class="fa-solid fa-check text-green"></i> Relatórios executivos de queima</li>
-                            </ul>
-                            <button class="btn-plan-edit" onclick="editarPlano('enterprise')">Ajustar Regras</button>
-                        </div>
-                    </div>
-                </div>
-
-            </section>
 
             <!-- ========================================================
-                 SEÇÃO 6: WHATSAPP GATEWAY & RELATÓRIOS DIÁRIOS
+                 SEÇÃO 6: WHATSAPP & RELATÓRIOS INTELIGENTES COM IA
             ========================================================= -->
             <section id="secWhatsapp" class="admin-section hidden">
 
-                <!-- BARRA SUPERIOR: STATUS E CONFIGURAÇÃO DO GATEWAY -->
-                <div class="panel-box" style="margin-bottom: 20px; background: linear-gradient(135deg, #091528, #0e1e38); border-color: #1e3a5f;">
-                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
-                        <div style="display: flex; align-items: center; gap: 14px;">
-                            <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); display: flex; align-items: center; justify-content: center; font-size: 24px; color: #34d399;">
-                                <i class="fa-brands fa-whatsapp"></i>
-                            </div>
-                            <div>
-                                <div style="display: flex; align-items: center; gap: 10px;">
-                                    <h3 style="color: white; font-size: 18px; margin: 0;">Gateway WhatsApp ThermoLink</h3>
-                                    <span id="waAdminStatusBadge" class="badge-status-online">Verificando...</span>
+                <!-- SUB-NAVEGAÇÃO POR ABAS DENTRO DO WHATSAPP -->
+                <div class="wa-subnav-container">
+                    <div class="wa-subnav-tabs">
+                        <button type="button" class="wa-tab-btn active" data-watab="conexao" onclick="trocarSubAbaWhatsapp('conexao')">
+                            <i class="fa-solid fa-tower-broadcast"></i>
+                            <span>Conexão & Gateway</span>
+                        </button>
+                        <button type="button" class="wa-tab-btn" data-watab="contatos" onclick="trocarSubAbaWhatsapp('contatos')">
+                            <i class="fa-solid fa-address-book"></i>
+                            <span>Contatos por Cerâmica</span>
+                            <span class="tab-badge" id="waTabBadgeContatos">0</span>
+                        </button>
+                        <button type="button" class="wa-tab-btn" data-watab="relatorios" onclick="trocarSubAbaWhatsapp('relatorios')">
+                            <i class="fa-solid fa-wand-magic-sparkles text-orange"></i>
+                            <span>Relatórios & IA</span>
+                            <span class="tab-badge tab-badge-orange">Automático</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- SUB-ABA 1: CONEXÃO & GATEWAY -->
+                <div id="waSubSecConexao" class="wa-subtab-pane">
+                    <!-- BARRA SUPERIOR: STATUS E CONFIGURAÇÃO DO GATEWAY -->
+                    <div class="panel-box" style="margin-bottom: 20px; background: linear-gradient(135deg, #091528, #0e1e38); border-color: #1e3a5f;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+                            <div style="display: flex; align-items: center; gap: 14px;">
+                                <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); display: flex; align-items: center; justify-content: center; font-size: 24px; color: #34d399;">
+                                    <i class="fa-brands fa-whatsapp"></i>
                                 </div>
-                                <p style="color: var(--text-muted); font-size: 13px; margin-top: 2px;" id="waAdminSubheader">
-                                    Disparo automático de telemetria diária dos fornos cerâmicos
+                                <div>
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <h3 style="color: white; font-size: 18px; margin: 0;">Gateway WhatsApp ThermoLink</h3>
+                                        <span id="waAdminStatusBadge" class="badge-status-online">Verificando...</span>
+                                    </div>
+                                    <p style="color: var(--text-muted); font-size: 13px; margin-top: 2px;" id="waAdminSubheader">
+                                        Disparo automático de telemetria diária dos fornos cerâmicos
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- OPÇÕES DE GATEWAY (LOCAL / GITHUB / NUVEM) -->
+                            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                <div style="display: flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.3); padding: 5px 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+                                    <i class="fa-solid fa-server" style="color: #64748b; font-size: 12px;"></i>
+                                    <span style="font-size: 11px; color: #94a3b8;">Servidor:</span>
+                                    <input type="text" id="waGatewayUrlInput" value="https://thermolink-whatsapp.onrender.com" style="background: transparent; border: none; color: #38bdf8; font-size: 12px; font-family: monospace; outline: none; width: 235px;" title="URL do Gateway WhatsApp">
+                                    <button class="btn-action-icon" onclick="salvarUrlGatewayAdmin()" title="Salvar URL do Gateway"><i class="fa-solid fa-check text-green"></i></button>
+                                </div>
+                                <button class="btn-primary-admin" onclick="carregarSecaoWhatsappAdmin()" style="padding: 8px 14px; font-size: 12px; background: #1e293b; color: white;">
+                                    <i class="fa-solid fa-rotate-right"></i> Atualizar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CARD DE CONEXÃO & QR CODE DIRETO NO ADMIN -->
+                    <div class="panel-box" id="waPairingPanel" style="margin-bottom: 24px; border: 1px solid #1e3a5f;">
+                        <!-- Bloco 1: Quando aguardando QR Code -->
+                        <div id="waQrCodeBlock" style="display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap;">
+                            <div style="max-width: 460px;">
+                                <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 12px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; font-size: 12px; font-weight: 700; margin-bottom: 10px;">
+                                    <i class="fa-solid fa-qrcode"></i> Leitura de QR Code Necessária
+                                </div>
+                                <h3 style="color: white; font-size: 18px; margin-bottom: 8px;">Conecte o WhatsApp do ThermoLink</h3>
+                                <p style="color: var(--text-muted); font-size: 13px; line-height: 1.7; margin-bottom: 16px;">
+                                    1. Abra o WhatsApp no smartphone que enviará os relatórios.<br>
+                                    2. Toque nos <b>3 pontinhos</b> (ou Ajustes) ➡️ <b>Aparelhos conectados</b>.<br>
+                                    3. Toque em <b>Conectar um aparelho</b> e aponte a câmera para o QR Code ao lado.
                                 </p>
+                                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                    <button class="btn-primary-admin" onclick="forcarNovoQrCodeAdmin()">
+                                        <i class="fa-solid fa-rotate-right"></i> Gerar Novo QR Code
+                                    </button>
+                                    <a href="http://localhost:3333" target="_blank" class="btn-primary-admin" style="background: #1e293b; color: white;">
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i> Abrir Painel Avulso
+                                    </a>
+                                </div>
+                            </div>
+
+                            <!-- Caixa do QR Code com contraste alto -->
+                            <div style="background: white; padding: 14px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; min-width: 220px; min-height: 220px;">
+                                <img id="waAdminQrImage" src="" alt="QR Code WhatsApp" style="width: 200px; height: 200px; object-fit: contain; display: none;">
+                                <div id="waAdminQrLoading" style="text-align: center; color: #64748b; font-size: 12px;">
+                                    <i class="fa-solid fa-spinner fa-spin" style="font-size: 32px; color: var(--orange); margin-bottom: 10px;"></i>
+                                    <p>Carregando QR Code...</p>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- OPÇÕES DE GATEWAY (LOCAL / GITHUB / NUVEM) -->
-                        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                            <div style="display: flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.3); padding: 5px 12px; border-radius: 8px; border: 1px solid var(--border-color);">
-                                <i class="fa-solid fa-server" style="color: #64748b; font-size: 12px;"></i>
-                                <span style="font-size: 11px; color: #94a3b8;">Servidor:</span>
-                                <input type="text" id="waGatewayUrlInput" value="https://thermolink-whatsapp.onrender.com" style="background: transparent; border: none; color: #38bdf8; font-size: 12px; font-family: monospace; outline: none; width: 235px;" title="URL do Gateway WhatsApp">
-                                <button class="btn-action-icon" onclick="salvarUrlGatewayAdmin()" title="Salvar URL do Gateway"><i class="fa-solid fa-check text-green"></i></button>
+                        <!-- Bloco 2: Quando Conectado -->
+                        <div id="waConnectedBlock" style="display: none; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
+                            <div style="display: flex; align-items: center; gap: 16px;">
+                                <div style="width: 56px; height: 56px; border-radius: 14px; background: rgba(16, 185, 129, 0.2); border: 2px solid #10b981; display: flex; align-items: center; justify-content: center; font-size: 28px; color: #10b981;">
+                                    <i class="fa-solid fa-check"></i>
+                                </div>
+                                <div>
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <b style="color: white; font-size: 17px;">WhatsApp Conectado com Sucesso!</b>
+                                        <span class="badge-status-online">Ativo</span>
+                                    </div>
+                                    <p style="color: #34d399; font-size: 15px; font-weight: 800; margin-top: 4px;" id="waConnectedPhoneDisplay">+55 ...</p>
+                                    <p style="color: var(--text-muted); font-size: 12px; margin-top: 4px;">
+                                        Sessão ativa e autenticada. Os relatórios diários de queima serão entregues a partir deste número.
+                                    </p>
+                                </div>
                             </div>
-                            <button class="btn-primary-admin" onclick="carregarSecaoWhatsappAdmin()" style="padding: 8px 14px; font-size: 12px; background: #1e293b; color: white;">
-                                <i class="fa-solid fa-rotate-right"></i> Atualizar
+
+                            <button class="btn-primary-admin" onclick="desconectarWhatsappAdmin()" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);">
+                                <i class="fa-solid fa-arrow-right-from-bracket"></i> Desconectar / Trocar Chip
                             </button>
+                        </div>
+                    </div>
+
+                    <!-- CARDS DE STATUS E MÉTRICAS -->
+                    <div class="kpi-grid">
+                        <div class="kpi-card">
+                            <div class="kpi-icon-box" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">
+                                <i class="fa-brands fa-whatsapp"></i>
+                            </div>
+                            <div class="kpi-body">
+                                <span class="kpi-label">Status da Conexão</span>
+                                <div class="kpi-value text-green" id="waAdminStatus">Verificando...</div>
+                                <div class="kpi-trend trend-green">
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    <span id="waAdminPhone">+55 ...</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="kpi-card">
+                            <div class="kpi-icon-box" style="background: rgba(249, 115, 22, 0.15); color: #fb923c;">
+                                <i class="fa-solid fa-address-book"></i>
+                            </div>
+                            <div class="kpi-body">
+                                <span class="kpi-label">Contatos Cadastrados</span>
+                                <div class="kpi-value text-orange" id="waAdminTotalContatos">0</div>
+                                <div class="kpi-trend trend-neutral">
+                                    <span id="waAdminContatosAtivos">0 ativos para envio</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="kpi-card">
+                            <div class="kpi-icon-box" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">
+                                <i class="fa-solid fa-clock"></i>
+                            </div>
+                            <div class="kpi-body">
+                                <span class="kpi-label">Horário do Disparo Diário</span>
+                                <div class="kpi-value text-blue" id="waAdminHorarioDisplay">18:00</div>
+                                <div class="kpi-trend trend-neutral">
+                                    <span id="waAdminStatusAuto">Automação Ativa</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="kpi-card">
+                            <div class="kpi-icon-box" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">
+                                <i class="fa-solid fa-paper-plane"></i>
+                            </div>
+                            <div class="kpi-body">
+                                <span class="kpi-label">Disparados Hoje</span>
+                                <div class="kpi-value" id="waAdminDisparadosHoje">0</div>
+                                <div class="kpi-trend trend-green">
+                                    <span>Relatórios enviados</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- LOGS RECENTES -->
+                    <div class="panel-box" style="margin-top: 24px;">
+                        <div class="panel-header">
+                            <div>
+                                <h3>Histórico de Transmissões Recentes</h3>
+                                <p>Registro das últimas notificações e relatórios entregues</p>
+                            </div>
+                            <button class="btn-plan-edit" onclick="carregarSecaoWhatsappAdmin()">
+                                <i class="fa-solid fa-rotate-right"></i> Atualizar Logs
+                            </button>
+                        </div>
+                        <div id="waAdminLogsBox" style="background: #050a12; border: 1px solid var(--border-color); border-radius: 10px; padding: 14px; font-family: monospace; font-size: 12px; max-height: 180px; overflow-y: auto; color: #94a3b8;">
+                            Carregando logs...
                         </div>
                     </div>
                 </div>
 
-                <!-- CARD DE CONEXÃO & QR CODE DIRETO NO ADMIN -->
-                <div class="panel-box" id="waPairingPanel" style="margin-bottom: 24px; border: 1px solid #1e3a5f;">
-                    <!-- Bloco 1: Quando aguardando QR Code -->
-                    <div id="waQrCodeBlock" style="display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap;">
-                        <div style="max-width: 460px;">
-                            <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 12px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; font-size: 12px; font-weight: 700; margin-bottom: 10px;">
-                                <i class="fa-solid fa-qrcode"></i> Leitura de QR Code Necessária
+                <!-- SUB-ABA 2: CONTATOS POR CERÂMICA -->
+                <div id="waSubSecContatos" class="wa-subtab-pane hidden">
+                    <!-- CONTROLE DO AGENDADOR & DISPARO GERAL -->
+                    <div class="panel-box" style="margin-bottom: 24px;">
+                        <div class="panel-header">
+                            <div>
+                                <h3>Programação de Envio Diário Automático</h3>
+                                <p>O sistema consulta a telemetria dos fornos e dispara o resumo diário automaticamente para cada cerâmica</p>
                             </div>
-                            <h3 style="color: white; font-size: 18px; margin-bottom: 8px;">Conecte o WhatsApp do ThermoLink</h3>
-                            <p style="color: var(--text-muted); font-size: 13px; line-height: 1.7; margin-bottom: 16px;">
-                                1. Abra o WhatsApp no smartphone que enviará os relatórios.<br>
-                                2. Toque nos <b>3 pontinhos</b> (ou Ajustes) ➡️ <b>Aparelhos conectados</b>.<br>
-                                3. Toque em <b>Conectar um aparelho</b> e aponte a câmera para o QR Code ao lado.
-                            </p>
-                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                                <button class="btn-primary-admin" onclick="forcarNovoQrCodeAdmin()">
-                                    <i class="fa-solid fa-rotate-right"></i> Gerar Novo QR Code
+                            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                                <button class="btn-primary-admin" onclick="dispararRelatoriosTodosAdmin()" style="background: linear-gradient(135deg, #10b981, #059669);">
+                                    <i class="fa-solid fa-paper-plane"></i>
+                                    <span>Disparar Agora para Todos os Clientes</span>
                                 </button>
-                                <a href="http://localhost:3333" target="_blank" class="btn-primary-admin" style="background: #1e293b; color: white;">
-                                    <i class="fa-solid fa-arrow-up-right-from-square"></i> Abrir Painel Avulso
+                            </div>
+                        </div>
+
+                        <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 12px; padding: 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+                            <div style="display: flex; align-items: center; gap: 14px;">
+                                <label class="switch">
+                                    <input type="checkbox" id="waAdminCheckAuto" onchange="salvarConfigWhatsappAdmin()">
+                                    <span class="slider"></span>
+                                </label>
+                                <div>
+                                    <b style="color: white; font-size: 14px;">Envio Automático Diário de Queima</b>
+                                    <p style="color: var(--text-muted); font-size: 12px;">Dispara para os números cadastrados na hora configurada</p>
+                                </div>
+                            </div>
+
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">Horário Diário (Fechamento 12h da Madrugada):</span>
+                                <input type="time" id="waAdminInputHorario" value="06:00" style="background: #07121f; border: 1px solid var(--border-color); border-radius: 8px; color: white; padding: 8px 12px; font-weight: 700; font-size: 14px;">
+                                <button class="btn-primary-admin" onclick="salvarConfigWhatsappAdmin()" style="padding: 8px 16px; font-size: 13px;">Salvar Horário</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CARD: MONITOR AUTOMÁTICO DE DESCONEXÃO (> 30 MIN) -->
+                    <div class="panel-box" style="margin-bottom: 24px; border: 1px solid rgba(245, 158, 11, 0.35); background: linear-gradient(135deg, rgba(14, 32, 52, 0.85), rgba(245, 158, 11, 0.06));">
+                        <div class="panel-header" style="flex-wrap: wrap; gap: 12px;">
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <h3 style="color: #fbbf24;"><i class="fa-solid fa-triangle-exclamation text-orange"></i> Monitor Automático de Desconexão (> 30 Minutos)</h3>
+                                    <span class="tag-pill tag-pill-orange"><i class="fa-solid fa-bolt"></i> 100% Automático</span>
+                                </div>
+                                <p style="color: #cbd5e1; font-size: 13px; margin-top: 4px;">
+                                    Se os aparelhos Alutal de uma cerâmica ficarem mais de 30 minutos sem comunicação (queda de energia, Wi-Fi fora do ar ou anomalia), o sistema envia automaticamente um aviso resumido no WhatsApp para os números cadastrados daquela cerâmica.
+                                </p>
+                            </div>
+                            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                                <button type="button" class="btn-primary-admin" onclick="abrirModalPreviewAlertaDesconexao()" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.45);">
+                                    <i class="fa-brands fa-whatsapp"></i> Ver Modelo do Alerta
+                                </button>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-top: 14px;">
+                            <div style="background: rgba(0,0,0,0.3); padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 12px;">
+                                <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(16, 185, 129, 0.2); color: #34d399; display: flex; align-items: center; justify-content: center; font-size: 16px;">
+                                    <i class="fa-solid fa-heart-pulse"></i>
+                                </div>
+                                <div>
+                                    <span style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Status do Monitor</span>
+                                    <div style="font-size: 13px; font-weight: 800; color: #34d399;" id="waStatusMonitorOffline">Ativo no Servidor (Checagem contínua)</div>
+                                </div>
+                            </div>
+
+                            <div style="background: rgba(0,0,0,0.3); padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 12px;">
+                                <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(245, 158, 11, 0.2); color: #fbbf24; display: flex; align-items: center; justify-content: center; font-size: 16px;">
+                                    <i class="fa-solid fa-stopwatch"></i>
+                                </div>
+                                <div>
+                                    <span style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Gatilho de Disparo</span>
+                                    <div style="font-size: 13px; font-weight: 800; color: #ffffff;">Sem sinal &gt; 30 minutos</div>
+                                </div>
+                            </div>
+
+                            <div style="background: rgba(0,0,0,0.3); padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 12px;">
+                                <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(56, 189, 248, 0.2); color: #38bdf8; display: flex; align-items: center; justify-content: center; font-size: 16px;">
+                                    <i class="fa-solid fa-bullhorn"></i>
+                                </div>
+                                <div>
+                                    <span style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Destinatários</span>
+                                    <div style="font-size: 13px; font-weight: 800; color: #ffffff;">Exclusivo da cerâmica sem sinal</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CONTATOS AGRUPADOS POR CERÂMICA -->
+                    <div class="panel-box">
+                        <div class="panel-header">
+                            <div>
+                                <h3>Contatos Vinculados por Cerâmica Cliente</h3>
+                                <p>Organize quem recebe o relatório em cada fábrica cerâmica. Você pode adicionar múltiplos contatos por cliente.</p>
+                            </div>
+                            <button class="btn-primary-admin" onclick="abrirModalNovoContatoWhatsapp()">
+                                <i class="fa-solid fa-user-plus"></i>
+                                <span>+ Novo Contato WhatsApp</span>
+                            </button>
+                        </div>
+
+                        <!-- BARRA DE PESQUISA & FILTROS POR CERÂMICA -->
+                        <div class="table-toolbar">
+                            <div class="search-input-group">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <input type="text" id="waSearchContato" placeholder="Buscar por cerâmica, responsável ou telefone..." oninput="filtrarContatosWhatsappAdmin(this.value)">
+                            </div>
+                            <div class="filter-pills" id="waCeramicasFilterPills">
+                                <!-- Preenchido dinamicamente com as cerâmicas -->
+                            </div>
+                        </div>
+
+                        <!-- CONTAINER DOS CARDS POR CERÂMICA -->
+                        <div id="waCeramicasCardsContainer" style="display: flex; flex-direction: column; gap: 18px; margin-top: 14px;">
+                            <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                                <i class="fa-solid fa-spinner fa-spin" style="font-size: 28px; color: var(--orange); margin-bottom: 10px;"></i>
+                                <p>Carregando cerâmicas e contatos...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SUB-ABA 3: RELATÓRIOS & IA (INTEGRADO, AUTOMÁTICO E DESCOMPLICADO) -->
+                <div id="waSubSecRelatorios" class="wa-subtab-pane hidden">
+                    
+                    <!-- PAINEL DE CONTROLE E VISUALIZAÇÃO DO RELATÓRIO AUTOMÁTICO -->
+                    <div class="panel-box" style="margin-bottom: 20px;">
+                        <div class="panel-header" style="flex-wrap: wrap; gap: 14px;">
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                    <h3><i class="fa-solid fa-wand-magic-sparkles text-orange"></i> Acompanhamento & Diagnóstico de Relatórios com IA</h3>
+                                    <span class="tag-pill tag-pill-orange" title="Motor Analítico Neural de Fornos Cerâmicos"><i class="fa-solid fa-brain-circuit"></i> IA Integrada ao WhatsApp</span>
+                                </div>
+                                <p>Monitore como o algoritmo de IA analisa a telemetria, identifica anomalias e gera os relatórios automáticos para cada cerâmica</p>
+                            </div>
+                            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                                <button type="button" class="btn-primary-admin" onclick="abrirModalPreviewWhatsappIA()" style="background: linear-gradient(135deg, #10b981, #059669);">
+                                    <i class="fa-brands fa-whatsapp"></i>
+                                    <span>Prévia no Celular</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- BARRA DE SELEÇÃO DE CLIENTE E PARÂMETROS -->
+                        <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+                            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <label style="font-size: 13px; font-weight: 700; color: #cbd5e1;"><i class="fa-solid fa-industry" style="color: var(--orange); margin-right: 4px;"></i> Cerâmica:</label>
+                                    <select id="aiSelectCeramica" class="select-admin" onchange="trocarCeramicaRelatorioIA()" style="background: #07121f; border: 1px solid var(--border-color); color: white; padding: 8px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; min-width: 220px;">
+                                        <!-- Preenchido dinamicamente com as cerâmicas -->
+                                    </select>
+                                </div>
+
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <label style="font-size: 13px; font-weight: 700; color: #cbd5e1;"><i class="fa-solid fa-clock-rotate-left" style="color: var(--cyan); margin-right: 4px;"></i> Janela de Análise:</label>
+                                    <select id="aiSelectJanela" class="select-admin" onchange="executarAnaliseIA(false)" style="background: #07121f; border: 1px solid var(--border-color); color: white; padding: 8px 12px; border-radius: 8px; font-size: 13px; font-weight: 600;">
+                                        <option value="12" selected>Últimas 12 Horas (Madrugada 18:00 às 06:00)</option>
+                                        <option value="24">Últimas 24 Horas (Ciclo Diário)</option>
+                                        <option value="48">Últimas 48 Horas (Ciclo Completo)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <span class="tag-pill" id="aiStatusUltimaAnalise" style="font-size: 12px; color: #94a3b8;">
+                                    <i class="fa-solid fa-circle-check text-green" style="margin-right: 4px;"></i> Atualizado agora
+                                </span>
+                                <button type="button" class="btn-icon-subtle" onclick="executarAnaliseIA(true)" title="Recarregar dados da IA" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #94a3b8; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;">
+                                    <i class="fa-solid fa-rotate" id="aiRefreshIcon"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CARDS DE KPIS ESSENCIAIS DO ALGORITMO DE IA -->
+                    <div class="kpi-grid" style="margin-bottom: 24px;">
+                        <!-- 1. Score Térmico Geral -->
+                        <div class="kpi-card ai-kpi-card">
+                            <div class="kpi-icon-box" style="background: rgba(249, 115, 22, 0.15); color: #f97316;">
+                                <i class="fa-solid fa-chart-line"></i>
+                            </div>
+                            <div class="kpi-body">
+                                <span class="kpi-label">Índice de Qualidade Térmica (TQS)</span>
+                                <div class="kpi-value text-green" id="aiKpiScore">--</div>
+                                <div class="kpi-trend trend-green" id="aiKpiScoreTrend">
+                                    <span class="live-dot-green"></span>
+                                    <span id="aiKpiScoreLabel">Calculando índice...</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 2. Gradiente Térmico Topo x Base -->
+                        <div class="kpi-card ai-kpi-card">
+                            <div class="kpi-icon-box" style="background: rgba(14, 165, 233, 0.15); color: #0ea5e9;">
+                                <i class="fa-solid fa-arrows-split-up-and-left"></i>
+                            </div>
+                            <div class="kpi-body">
+                                <span class="kpi-label">Gradiente Médio (C1 x C2)</span>
+                                <div class="kpi-value text-blue" id="aiKpiGradiente">--</div>
+                                <div class="kpi-trend trend-neutral" id="aiKpiGradienteTrend">
+                                    <span id="aiKpiGradienteLabel">Equilíbrio topo x base</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3. Eficiência de Biomassa & Elevação -->
+                        <div class="kpi-card ai-kpi-card">
+                            <div class="kpi-icon-box" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">
+                                <i class="fa-solid fa-fire-burner"></i>
+                            </div>
+                            <div class="kpi-body">
+                                <span class="kpi-label">Eficiência Energética (Lenha)</span>
+                                <div class="kpi-value" id="aiKpiEficiencia">--</div>
+                                <div class="kpi-trend trend-green" id="aiKpiEficienciaTrend">
+                                    <span id="aiKpiEficienciaLabel">Rendimento estável</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4. Anomalias & Risco -->
+                        <div class="kpi-card ai-kpi-card">
+                            <div class="kpi-icon-box" style="background: rgba(244, 63, 94, 0.15); color: #f43f5e;">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                            </div>
+                            <div class="kpi-body">
+                                <span class="kpi-label">Anomalias Detectadas</span>
+                                <div class="kpi-value" id="aiKpiAnomalias">0</div>
+                                <div class="kpi-trend trend-neutral" id="aiKpiAnomaliasTrend">
+                                    <span id="aiKpiAnomaliasLabel">Nenhum risco detectado</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- DIAGNÓSTICO DETALHADO FORNO A FORNO -->
+                    <div class="panel-box" style="margin-bottom: 24px;">
+                        <div class="panel-header">
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <h3>Diagnóstico Detalhado por Forno (IA)</h3>
+                                    <span class="tag-pill tag-pill-cyan" id="aiCeramicaAtivaBadge">Cerâmica</span>
+                                </div>
+                                <p>Análise de fase de queima, estabilidade térmica, desvio de canais e recomendações operacionais</p>
+                            </div>
+                        </div>
+
+                        <div id="aiFornosContainer" class="ai-fornos-grid">
+                            <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                                <i class="fa-solid fa-spinner fa-spin" style="font-size: 28px; color: var(--orange); margin-bottom: 10px;"></i>
+                                <p>Executando algoritmo de inteligência artificial nos fornos...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CARD: GRÁFICO DA CURVA TÉRMICA DAS ÚLTIMAS 12 HORAS (ANEXO DE WHATSAPP) -->
+                    <div class="panel-box" id="aiChartPreviewCard" style="margin-bottom: 24px; background: #07101e; border: 1px solid #1a2f4c;">
+                        <div class="panel-header" style="flex-wrap: wrap; gap: 10px;">
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <h3 style="color: #f97316;"><i class="fa-solid fa-chart-line"></i> Curva Térmica da Queima (12h Madrugada)</h3>
+                                    <span class="tag-pill tag-pill-orange">Anexo Imagem WhatsApp</span>
+                                </div>
+                                <p>Gráfico de alta resolução gerado automaticamente e anexado ao WhatsApp dos clientes às 06:00</p>
+                            </div>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <a id="aiChartLink" href="#" target="_blank" class="btn-secondary-admin" style="display: none; padding: 6px 12px; font-size: 12px; text-decoration: none;">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i> Abrir Imagem HD
                                 </a>
                             </div>
                         </div>
 
-                        <!-- Caixa do QR Code com contraste alto -->
-                        <div style="background: white; padding: 14px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; min-width: 220px; min-height: 220px;">
-                            <img id="waAdminQrImage" src="" alt="QR Code WhatsApp" style="width: 200px; height: 200px; object-fit: contain; display: none;">
-                            <div id="waAdminQrLoading" style="text-align: center; color: #64748b; font-size: 12px;">
-                                <i class="fa-solid fa-spinner fa-spin" style="font-size: 32px; color: var(--orange); margin-bottom: 10px;"></i>
-                                <p>Carregando QR Code...</p>
+                        <div style="background: #091322; border-radius: 10px; overflow: hidden; border: 1px solid rgba(255,255,255,0.06); text-align: center; min-height: 220px; display: flex; align-items: center; justify-content: center;">
+                            <img id="aiChartPreviewImg" src="" alt="Gráfico da Queima 12h" style="max-width: 100%; height: auto; display: none; margin: 0 auto; border-radius: 8px;">
+                            <div id="aiChartLoading" style="padding: 40px; color: #94a3b8;">
+                                <i class="fa-solid fa-spinner fa-spin text-orange" style="font-size: 24px; margin-bottom: 8px;"></i>
+                                <p style="font-size: 13px;">Processando leituras e renderizando curvas dos fornos em queima...</p>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Bloco 2: Quando Conectado -->
-                    <div id="waConnectedBlock" style="display: none; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
-                        <div style="display: flex; align-items: center; gap: 16px;">
-                            <div style="width: 56px; height: 56px; border-radius: 14px; background: rgba(16, 185, 129, 0.2); border: 2px solid #10b981; display: flex; align-items: center; justify-content: center; font-size: 28px; color: #10b981;">
-                                <i class="fa-solid fa-check"></i>
-                            </div>
+                    <!-- ESTRUTURA DO RELATÓRIO AUTOMÁTICO PARA WHATSAPP -->
+                    <div class="panel-box">
+                        <div class="panel-header">
                             <div>
-                                <div style="display: flex; align-items: center; gap: 10px;">
-                                    <b style="color: white; font-size: 17px;">WhatsApp Conectado com Sucesso!</b>
-                                    <span class="badge-status-online">Ativo</span>
-                                </div>
-                                <p style="color: #34d399; font-size: 15px; font-weight: 800; margin-top: 4px;" id="waConnectedPhoneDisplay">+55 ...</p>
-                                <p style="color: var(--text-muted); font-size: 12px; margin-top: 4px;">
-                                    Sessão ativa e autenticada. Os relatórios diários de queima serão entregues a partir deste número.
-                                </p>
+                                <h3><i class="fa-brands fa-whatsapp text-green"></i> Relatório Automático Montado pela IA</h3>
+                                <p>Modelo exato gerado para os disparos automáticos diários aos gestores no WhatsApp</p>
+                            </div>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                <button type="button" class="btn-primary-admin" onclick="copiarRelatorioIATexto()" style="background: #1e293b; border: 1px solid rgba(255,255,255,0.15);">
+                                    <i class="fa-solid fa-copy"></i>
+                                    <span>Copiar Texto</span>
+                                </button>
+                                <button type="button" class="btn-primary-admin" onclick="abrirModalPreviewWhatsappIA()" style="background: linear-gradient(135deg, #10b981, #059669);">
+                                    <i class="fa-brands fa-whatsapp"></i>
+                                    <span>Ver Prévia no Celular</span>
+                                </button>
                             </div>
                         </div>
 
-                        <button class="btn-primary-admin" onclick="desconectarWhatsappAdmin()" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);">
-                            <i class="fa-solid fa-arrow-right-from-bracket"></i> Desconectar / Trocar Chip
-                        </button>
-                    </div>
-                </div>
+                        <div style="position: relative;">
+                            <textarea id="aiRelatorioTextoArea" rows="14" style="width: 100%; background: #050a12; border: 1px solid var(--border-color); border-radius: 10px; padding: 16px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #e2e8f0; line-height: 1.6; resize: vertical;" placeholder="O relatório enriquecido pela IA será gerado aqui..." readonly></textarea>
+                        </div>
 
-                <!-- CARDS DE STATUS E MÉTRICAS -->
-                <div class="kpi-grid">
-                    <div class="kpi-card">
-                        <div class="kpi-icon-box" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">
-                            <i class="fa-brands fa-whatsapp"></i>
-                        </div>
-                        <div class="kpi-body">
-                            <span class="kpi-label">Status da Conexão</span>
-                            <div class="kpi-value text-green" id="waAdminStatus">Verificando...</div>
-                            <div class="kpi-trend trend-green">
-                                <i class="fa-solid fa-circle-check"></i>
-                                <span id="waAdminPhone">+55 ...</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="kpi-card">
-                        <div class="kpi-icon-box" style="background: rgba(249, 115, 22, 0.15); color: #fb923c;">
-                            <i class="fa-solid fa-address-book"></i>
-                        </div>
-                        <div class="kpi-body">
-                            <span class="kpi-label">Contatos Cadastrados</span>
-                            <div class="kpi-value text-orange" id="waAdminTotalContatos">0</div>
-                            <div class="kpi-trend trend-neutral">
-                                <span id="waAdminContatosAtivos">0 ativos para envio</span>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; flex-wrap: wrap; gap: 10px;">
+                            <span style="font-size: 12px; color: var(--text-muted);">
+                                <i class="fa-solid fa-circle-info"></i> Os relatórios são gerados e disparados automaticamente pelo sistema no horário configurado.
+                            </span>
+                            <div style="display: flex; gap: 8px;">
+                                <button type="button" class="btn-admin-cancel" onclick="gerarTextoRelatorioIA(true)">
+                                    <i class="fa-solid fa-rotate-left"></i> Recarregar Texto da IA
+                                </button>
                             </div>
                         </div>
                     </div>
 
-                    <div class="kpi-card">
-                        <div class="kpi-icon-box" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">
-                            <i class="fa-solid fa-clock"></i>
-                        </div>
-                        <div class="kpi-body">
-                            <span class="kpi-label">Horário do Disparo Diário</span>
-                            <div class="kpi-value text-blue" id="waAdminHorarioDisplay">18:00</div>
-                            <div class="kpi-trend trend-neutral">
-                                <span id="waAdminStatusAuto">Automação Ativa</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="kpi-card">
-                        <div class="kpi-icon-box" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">
-                            <i class="fa-solid fa-paper-plane"></i>
-                        </div>
-                        <div class="kpi-body">
-                            <span class="kpi-label">Disparados Hoje</span>
-                            <div class="kpi-value" id="waAdminDisparadosHoje">0</div>
-                            <div class="kpi-trend trend-green">
-                                <span>Relatórios enviados</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- CONTROLE DO AGENDADOR & DISPARO GERAL -->
-                <div class="panel-box" style="margin-bottom: 24px;">
-                    <div class="panel-header">
-                        <div>
-                            <h3>Programação de Envio Diário Automático</h3>
-                            <p>O sistema consulta a telemetria dos fornos e dispara o resumo diário automaticamente para cada cerâmica</p>
-                        </div>
-                        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                            <button class="btn-primary-admin" onclick="dispararRelatoriosTodosAdmin()" style="background: linear-gradient(135deg, #10b981, #059669);">
-                                <i class="fa-solid fa-paper-plane"></i>
-                                <span>Disparar Agora para Todos os Clientes</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 12px; padding: 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
-                        <div style="display: flex; align-items: center; gap: 14px;">
-                            <label class="switch">
-                                <input type="checkbox" id="waAdminCheckAuto" onchange="salvarConfigWhatsappAdmin()">
-                                <span class="slider"></span>
-                            </label>
-                            <div>
-                                <b style="color: white; font-size: 14px;">Envio Automático Diário de Queima</b>
-                                <p style="color: var(--text-muted); font-size: 12px;">Dispara para os números cadastrados na hora configurada</p>
-                            </div>
-                        </div>
-
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">Horário Diário:</span>
-                            <input type="time" id="waAdminInputHorario" value="18:00" style="background: #07121f; border: 1px solid var(--border-color); border-radius: 8px; color: white; padding: 8px 12px; font-weight: 700; font-size: 14px;">
-                            <button class="btn-primary-admin" onclick="salvarConfigWhatsappAdmin()" style="padding: 8px 16px; font-size: 13px;">Salvar Horário</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- SEÇÃO PRINCIPAL: CONTATOS AGRUPADOS POR CERÂMICA -->
-                <div class="panel-box">
-                    <div class="panel-header">
-                        <div>
-                            <h3>Contatos Vinculados por Cerâmica Cliente</h3>
-                            <p>Organize quem recebe o relatório em cada fábrica cerâmica. Você pode adicionar múltiplos contatos por cliente.</p>
-                        </div>
-                        <button class="btn-primary-admin" onclick="abrirModalNovoContatoWhatsapp()">
-                            <i class="fa-solid fa-user-plus"></i>
-                            <span>+ Novo Contato WhatsApp</span>
-                        </button>
-                    </div>
-
-                    <!-- BARRA DE PESQUISA & FILTROS POR CERÂMICA -->
-                    <div class="table-toolbar">
-                        <div class="search-input-group">
-                            <i class="fa-solid fa-magnifying-glass"></i>
-                            <input type="text" id="waSearchContato" placeholder="Buscar por cerâmica, responsável ou telefone..." oninput="filtrarContatosWhatsappAdmin(this.value)">
-                        </div>
-                        <div class="filter-pills" id="waCeramicasFilterPills">
-                            <!-- Preenchido dinamicamente com as cerâmicas -->
-                        </div>
-                    </div>
-
-                    <!-- CONTAINER DOS CARDS POR CERÂMICA -->
-                    <div id="waCeramicasCardsContainer" style="display: flex; flex-direction: column; gap: 18px; margin-top: 14px;">
-                        <div style="text-align: center; padding: 40px; color: var(--text-muted);">
-                            <i class="fa-solid fa-spinner fa-spin" style="font-size: 28px; color: var(--orange); margin-bottom: 10px;"></i>
-                            <p>Carregando cerâmicas e contatos...</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- LOGS RECENTES -->
-                <div class="panel-box" style="margin-top: 24px;">
-                    <div class="panel-header">
-                        <div>
-                            <h3>Histórico de Transmissões Recentes</h3>
-                            <p>Registro das últimas notificações e relatórios entregues</p>
-                        </div>
-                        <button class="btn-plan-edit" onclick="carregarSecaoWhatsappAdmin()">
-                            <i class="fa-solid fa-rotate-right"></i> Atualizar Logs
-                        </button>
-                    </div>
-                    <div id="waAdminLogsBox" style="background: #050a12; border: 1px solid var(--border-color); border-radius: 10px; padding: 14px; font-family: monospace; font-size: 12px; max-height: 180px; overflow-y: auto; color: #94a3b8;">
-                        Carregando logs...
-                    </div>
                 </div>
 
             </section>
@@ -901,10 +1102,6 @@
             <button class="mobile-nav-item" data-secao="atividade" onclick="trocarSecaoAdmin('atividade')">
                 <i class="fa-solid fa-users-viewfinder"></i>
                 <span>Acessos</span>
-            </button>
-            <button class="mobile-nav-item" data-secao="planos" onclick="trocarSecaoAdmin('planos')">
-                <i class="fa-solid fa-sliders"></i>
-                <span>Planos</span>
             </button>
             <button class="mobile-nav-item" data-secao="whatsapp" onclick="trocarSecaoAdmin('whatsapp')">
                 <i class="fa-brands fa-whatsapp text-green"></i>
@@ -1226,6 +1423,186 @@
                 <button type="submit" class="btn-admin-submit" style="background: linear-gradient(135deg, #10b981, #059669);">Salvar Contato</button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- ========================================================
+     MODAL: STATUS DETALHADO DOS DISPOSITIVOS (ONLINE & BYPASS)
+========================================================= -->
+<div id="modalStatusAparelhos" class="modal-overlay hidden" onclick="fecharModalAdmin('modalStatusAparelhos', event)">
+    <div class="modal-dialog modal-dialog-lg" onclick="event.stopPropagation()" style="max-width: 860px; width: 95%;">
+        <div class="modal-dialog-header">
+            <div>
+                <h3><i class="fa-solid fa-tower-broadcast text-green" style="margin-right: 8px;"></i> Status de Transmissão dos Dispositivos</h3>
+                <p style="color: var(--text-muted); font-size: 12px; margin-top: 3px;">
+                    Monitoramento em tempo real dos últimos 10 minutos (Regra: Ativo &le; 10 min | Bypass &gt; 10 min)
+                </p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <button type="button" class="btn-icon-subtle" onclick="atualizarStatusDispositivosOnline(true)" title="Recarregar status agora" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #94a3b8; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
+                    <i class="fa-solid fa-rotate" id="refreshStatusAparelhosIcon"></i>
+                </button>
+                <button type="button" class="btn-close-modal" onclick="fecharModalAdmin('modalStatusAparelhos', null)"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+        </div>
+
+        <!-- CARDS DE RESUMO RÁPIDO -->
+        <div class="status-summary-grid">
+            <div class="status-summary-card status-card-online">
+                <div class="status-summary-icon text-green"><i class="fa-solid fa-wifi"></i></div>
+                <div>
+                    <span class="status-summary-label">Dispositivos Online (&le; 10 min)</span>
+                    <b class="status-summary-num text-green" id="modalCountOnline">--</b>
+                </div>
+            </div>
+            <div class="status-summary-card status-card-bypass">
+                <div class="status-summary-icon text-yellow"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                <div>
+                    <span class="status-summary-label">Dispositivos em Bypass (&gt; 10 min)</span>
+                    <b class="status-summary-num text-yellow" id="modalCountBypass">--</b>
+                </div>
+            </div>
+            <div class="status-summary-card status-card-total">
+                <div class="status-summary-icon text-cyan"><i class="fa-solid fa-microchip"></i></div>
+                <div>
+                    <span class="status-summary-label">Total de Dispositivos</span>
+                    <b class="status-summary-num" id="modalCountTotal">--</b>
+                </div>
+            </div>
+        </div>
+
+        <!-- FILTROS E BUSCA -->
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 16px 0 12px; flex-wrap: wrap;">
+            <div class="filter-pills" id="modalStatusFilterPills">
+                <button class="filter-pill active" id="btnFilterStatusTodos" onclick="filtrarModalAparelhos('todos', this)">Todos (<span id="filterCountTodos">0</span>)</button>
+                <button class="filter-pill" id="btnFilterStatusOnline" onclick="filtrarModalAparelhos('online', this)">🟢 Online (<span id="filterCountOnline">0</span>)</button>
+                <button class="filter-pill" id="btnFilterStatusBypass" onclick="filtrarModalAparelhos('bypass', this)">🟡 Em Bypass (<span id="filterCountBypass">0</span>)</button>
+            </div>
+            <div class="search-input-group" style="max-width: 280px; width: 100%;">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="modalSearchAparelhoInput" placeholder="Buscar cerâmica, serial..." oninput="filtrarModalAparelhosBusca(this.value)">
+            </div>
+        </div>
+
+        <!-- TABELA DE STATUS DOS APARELHOS -->
+        <div class="admin-table-wrapper" style="max-height: 380px; overflow-y: auto;">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Dispositivo / Serial</th>
+                        <th>Cerâmica Cliente</th>
+                        <th>Status Atual</th>
+                        <th>Última Transmissão</th>
+                        <th>Tempo Decorrido</th>
+                        <th>Temperaturas</th>
+                    </tr>
+                </thead>
+                <tbody id="modalAparelhosTableBody">
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 24px; color: var(--text-muted);">
+                            <i class="fa-solid fa-spinner fa-spin" style="margin-right: 6px;"></i> Carregando telemetria dos aparelhos...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="modal-dialog-actions" style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center;">
+            <small style="color: var(--text-muted); font-size: 11px;">
+                <i class="fa-solid fa-circle-info"></i> Sincronizado automaticamente a cada 20 segundos com o Supabase.
+            </small>
+            <button type="button" class="btn-admin-cancel" onclick="fecharModalAdmin('modalStatusAparelhos', null)">Fechar</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================
+     MODAL: PRÉVIA VISUAL DO WHATSAPP COM IA
+========================================================= -->
+<div id="modalPreviewWhatsappIA" class="modal-overlay hidden" onclick="fecharModalAdmin('modalPreviewWhatsappIA', event)">
+    <div class="modal-dialog modal-dialog-md" onclick="event.stopPropagation()" style="max-width: 540px; width: 95%;">
+        <div class="modal-dialog-header">
+            <div>
+                <h3><i class="fa-brands fa-whatsapp text-green" style="margin-right: 8px;"></i> Simulação de Mensagem WhatsApp</h3>
+                <p style="color: var(--text-muted); font-size: 12px; margin-top: 3px;">
+                    Visualização fiel do relatório enriquecido com IA como o cliente verá no celular
+                </p>
+            </div>
+            <button type="button" class="btn-close-modal" onclick="fecharModalAdmin('modalPreviewWhatsappIA', null)"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <div class="wa-phone-mockup" style="background: #0b141a; border-radius: 16px; padding: 16px; margin: 16px 0; border: 1px solid rgba(255,255,255,0.08); background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 0); background-size: 18px 18px;">
+            <div id="waMockupImgBox" style="margin-bottom: 8px; border-radius: 10px; overflow: hidden; display: none;">
+                <img id="waMockupChartImg" src="" alt="Gráfico das 12h" style="width: 100%; height: auto; display: block; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);">
+            </div>
+            <div class="wa-message-bubble" style="background: #005c4b; color: #e9edef; padding: 14px 16px; border-radius: 12px 12px 2px 12px; font-size: 12.5px; line-height: 1.6; max-height: 420px; overflow-y: auto; white-space: pre-wrap; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; box-shadow: 0 2px 5px rgba(0,0,0,0.3);" id="waMockupMessageText">
+                Carregando relatório...
+            </div>
+            <div style="display: flex; justify-content: flex-end; align-items: center; gap: 4px; margin-top: 6px; font-size: 11px; color: #8696a0;">
+                <span id="waMockupHora">Hoje</span> <i class="fa-solid fa-check-double" style="color: #53bdeb;"></i>
+            </div>
+        </div>
+
+        <div class="modal-dialog-actions" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <button type="button" class="btn-admin-cancel" onclick="fecharModalAdmin('modalPreviewWhatsappIA', null)">Fechar</button>
+            <div style="display: flex; gap: 8px;">
+                <button type="button" class="btn-primary-admin" onclick="copiarRelatorioIATexto()" style="background: #1e293b; border: 1px solid rgba(255,255,255,0.15);">
+                    <i class="fa-solid fa-copy"></i> Copiar Texto
+                </button>
+                <button type="button" class="btn-primary-admin" onclick="dispararRelatorioIAWhatsappAdmin()" style="background: linear-gradient(135deg, #10b981, #059669); font-size: 12px;">
+                    <i class="fa-solid fa-paper-plane"></i> Testar Envio no WhatsApp
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================
+     MODAL: PRÉVIA DO ALERTA DE DESCONEXÃO (> 30 MIN)
+========================================================= -->
+<div id="modalPreviewAlertaDesconexao" class="modal-overlay hidden" onclick="fecharModalAdmin('modalPreviewAlertaDesconexao', event)">
+    <div class="modal-dialog modal-dialog-md" onclick="event.stopPropagation()" style="max-width: 520px; width: 95%;">
+        <div class="modal-dialog-header">
+            <div>
+                <h3 style="color: #fbbf24;"><i class="fa-solid fa-triangle-exclamation text-orange" style="margin-right: 8px;"></i> Modelo de Alerta de Desconexão</h3>
+                <p style="color: var(--text-muted); font-size: 12px; margin-top: 3px;">
+                    Mensagem automática enviada aos números da cerâmica quando o aparelho Alutal passar de 30 minutos sem sinal
+                </p>
+            </div>
+            <button type="button" class="btn-close-modal" onclick="fecharModalAdmin('modalPreviewAlertaDesconexao', null)"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <div class="wa-phone-mockup" style="background: #0b141a; border-radius: 16px; padding: 16px; margin: 16px 0; border: 1px solid rgba(255,255,255,0.08); background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 0); background-size: 18px 18px;">
+            <div class="wa-message-bubble" style="background: #005c4b; color: #e9edef; padding: 14px 16px; border-radius: 12px 12px 2px 12px; font-size: 12.5px; line-height: 1.6; max-height: 440px; overflow-y: auto; white-space: pre-wrap; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; box-shadow: 0 2px 5px rgba(0,0,0,0.3);" id="waMockupAlertaText">
+⚠️ *ALERTA THERMOLINK • EQUIPAMENTO OFFLINE* ⚠️
+
+🏭 *Cerâmica:* [Nome da Cerâmica]
+⏱️ *Sem comunicação:* há mais de 30 minutos
+📡 *Status:* Módulos sem sinal com o servidor
+
+Identificamos que os sensores/aparelhos Alutal estão sem comunicação com o servidor.
+
+🔍 *Possíveis causas:*
+• Queda de energia elétrica na fábrica
+• Falha ou oscilação na conexão Wi-Fi / Internet
+• Aparelho desligado da tomada ou reiniciando
+
+Favor verificar se os equipamentos e a internet da fábrica estão ligados.
+_Mensagem automática enviada pelo sistema ThermoLink._
+            </div>
+            <div style="display: flex; justify-content: flex-end; align-items: center; gap: 4px; margin-top: 6px; font-size: 11px; color: #8696a0;">
+                <span>Alerta Automático</span> <i class="fa-solid fa-check-double" style="color: #53bdeb;"></i>
+            </div>
+        </div>
+
+        <div class="modal-dialog-actions" style="display: flex; justify-content: space-between; align-items: center;">
+            <button type="button" class="btn-admin-cancel" onclick="fecharModalAdmin('modalPreviewAlertaDesconexao', null)">Fechar</button>
+            <div style="display: flex; gap: 8px;">
+                <button type="button" class="btn-primary-admin" onclick="testarDisparoAlertaDesconexaoAdmin()" style="background: linear-gradient(135deg, #f97316, #ea580c); font-size: 12px;">
+                    <i class="fa-solid fa-paper-plane"></i> Testar Envio para Cerâmica Ativa
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 

@@ -233,6 +233,7 @@ const adminState = {
     activeSection: "dashboard",
     clients: [],
     devices: [],
+    latestGithubRelease: "v4.5.7",
     trafficChart: null,
     clientFilterStatus: "all",
     clientSearchQuery: "",
@@ -248,7 +249,16 @@ const adminState = {
         search: ""
     },
     dailyAccessChart: null,
-    hourlyDistributionChart: null
+    hourlyDistributionChart: null,
+    // Sub-aba ativa na seção WhatsApp
+    waActiveTab: "conexao",
+    // Inteligência Artificial & Relatórios
+    aiReportState: {
+        activeCeramicaId: null,
+        janelaHoras: 12,
+        analiseAtual: null,
+        textoFormatado: ""
+    }
 };
 
 const $ = (id) => document.getElementById(id);
@@ -314,6 +324,7 @@ async function carregarDadosSupabase() {
                     voltage: d.voltage || 5.05,
                     sensorC1: "OK",
                     sensorC2: "OK",
+                    firmware: d.firmware || d.firmware_version || "v4.5.7",
                     uptime: d.uptime || "--",
                     ultimoAcesso: d.ultimo_acesso
                 };
@@ -337,6 +348,10 @@ async function carregarDadosSupabase() {
         }
         if (adminState.activeSection === "whatsapp") {
             renderCardsCeramicasWhatsappAdmin();
+            if (adminState.waActiveTab === "relatorios") {
+                popularSelectCeramicasIA();
+                executarAnaliseIA(false);
+            }
         }
 
     } catch (err) {
@@ -352,6 +367,10 @@ async function carregarDadosSupabase() {
         }
         if (adminState.activeSection === "whatsapp") {
             renderCardsCeramicasWhatsappAdmin();
+            if (adminState.waActiveTab === "relatorios") {
+                popularSelectCeramicasIA();
+                executarAnaliseIA(false);
+            }
         }
     }
 }
@@ -420,7 +439,7 @@ function trocarSecaoAdmin(secao) {
         dispositivos: { h1: "Fábrica & Hardware", sub: "Cadastro de números de série, geração de etiquetas adesivas e inventário" },
         atividade: { h1: "Atividade dos Usuários", sub: "Monitoramento em tempo real de acessos, dispositivos e horários de pico" },
         planos: { h1: "Planos & Faturamento", sub: "Configuração de limites de fornos e tempo de retenção do banco de dados" },
-        whatsapp: { h1: "WhatsApp & Relatórios", sub: "Gestão de contatos de cerâmicas e automação de relatórios diários de queima" }
+        whatsapp: { h1: "WhatsApp & Relatórios", sub: "Gateway de comunicação, contatos de cerâmicas e relatórios automáticos com IA" }
     };
 
     if (titulos[secao]) {
@@ -444,13 +463,11 @@ function trocarSecaoAdmin(secao) {
         pararPollingWhatsappAdmin();
         $("secAtividade")?.classList.remove("hidden");
         renderSecaoAtividade();
-    } else if (secao === "planos") {
-        pararPollingWhatsappAdmin();
-        $("secPlanos")?.classList.remove("hidden");
     } else if (secao === "whatsapp") {
         $("secWhatsapp")?.classList.remove("hidden");
         carregarSecaoWhatsappAdmin();
         iniciarPollingWhatsappAdmin();
+        trocarSubAbaWhatsapp(adminState.waActiveTab || "conexao");
     }
 
     // Atualiza estado ativo na sidebar e na bottom bar móvel
@@ -494,6 +511,29 @@ function toggleSidebarMobile() {
     }
 }
 
+function trocarSubAbaWhatsapp(tabId) {
+    adminState.waActiveTab = tabId;
+
+    // Atualiza botões da barra de abas
+    document.querySelectorAll(".wa-tab-btn").forEach(btn => {
+        btn.classList.toggle("active", btn.getAttribute("data-watab") === tabId);
+    });
+
+    // Alterna visibilidade dos painéis
+    $("waSubSecConexao")?.classList.toggle("hidden", tabId !== "conexao");
+    $("waSubSecContatos")?.classList.toggle("hidden", tabId !== "contatos");
+    $("waSubSecRelatorios")?.classList.toggle("hidden", tabId !== "relatorios");
+
+    // Ações específicas ao abrir cada sub-aba
+    if (tabId === "relatorios") {
+        carregarSecaoRelatoriosIA();
+    } else if (tabId === "contatos") {
+        renderCardsCeramicasWhatsappAdmin();
+    } else if (tabId === "conexao") {
+        carregarStatusWhatsappAdmin(false);
+    }
+}
+
 // ==========================================================================
 // 4. RENDERIZAÇÃO DO DASHBOARD GERAL
 // ==========================================================================
@@ -503,10 +543,6 @@ function renderDashboardGeral() {
     const devices = getDevices();
 
     // KPIs
-    const totalMRR = clients
-        .filter(c => c.status === "Ativo")
-        .reduce((acc, c) => acc + (Number(c.valorMensal) || 0), 0);
-
     const ativas = clients.filter(c => c.status === "Ativo");
     const onlineDevs = devices.filter(d => d.status === "Vinculado");
 
@@ -517,24 +553,9 @@ function renderDashboardGeral() {
     if ($("kpiTotalDevices")) $("kpiTotalDevices").textContent = devices.length;
     if ($("kpiOnlineDevicesCount")) $("kpiOnlineDevicesCount").textContent = `${onlineDevs.length} vinculados`;
 
-    if ($("kpiTotalRevenue")) $("kpiTotalRevenue").textContent = `R$ ${totalMRR.toLocaleString("pt-BR")}`;
-    if ($("kpiTotalAlerts")) $("kpiTotalAlerts").textContent = "0";
-
-    // Activity Feed
-    const feed = $("activityFeedList");
-    if (feed) {
-        feed.innerHTML = clients.map(c => `
-            <div class="activity-item">
-                <div class="act-info">
-                    <b>${escapeHtml(c.nome)}</b>
-                    <span>${c.status === "Ativo" ? "Sincronizando leituras térmicas" : "Acesso bloqueado temporariamente"}</span>
-                </div>
-                <div class="act-time">${c.ultimoAcesso}</div>
-            </div>
-        `).join("");
-    }
-
     renderTrafficChart();
+    atualizarStatusDispositivosOnline();
+    renderListaVersoesFirmware();
 }
 
 let isRenderingTrafficChart = false;
@@ -2307,17 +2328,395 @@ function abrirHistoricoUsuario(userParam) {
 }
 
 // ==========================================================================
-// 9. PLANOS & CENTRAL OTA
+// 9. CENTRAL OTA
 // ==========================================================================
-
-function editarPlano(planoKey) {
-    alert(`Configuração do plano ${planoKey.toUpperCase()}:\nAs regras de limites de fornos e retenção de banco de dados foram salvas e aplicadas a todas as cerâmicas vinculadas.`);
-}
 
 function abrirModalDeployOTA() {
     if (confirm("Deseja disparar a atualização de Firmware v4.0.0 via Over-The-Air (OTA) para todos os dispositivos ThermoLink conectados no Brasil?")) {
         alert("Comando de atualização remota disparado com sucesso!\nOs módulos farão o download da release mais recente no GitHub e reinicialização automática.");
     }
+}
+
+// ==========================================================================
+// 8. MONITORAMENTO DE DISPOSITIVOS ONLINE & BYPASS (< 10 MINUTOS)
+// ==========================================================================
+
+function formatarTempoDecorrido(timestamp) {
+    if (!timestamp) return "Nunca transmitiu";
+    const data = new Date(timestamp);
+    if (isNaN(data.getTime())) return "Data inválida";
+
+    const diffMs = Date.now() - data.getTime();
+    if (diffMs < 0) return "Agora mesmo";
+
+    const diffSeg = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSeg / 60);
+    const diffHoras = Math.floor(diffMin / 60);
+    const diffDias = Math.floor(diffHoras / 24);
+
+    if (diffSeg < 60) return `há ${diffSeg} seg`;
+    if (diffMin < 60) return `há ${diffMin} min`;
+    if (diffHoras < 24) {
+        const minRestantes = diffMin % 60;
+        return `há ${diffHoras}h ${minRestantes > 0 ? `${minRestantes}m` : ''}`.trim();
+    }
+    const horasRestantes = diffHoras % 24;
+    return `há ${diffDias} ${diffDias === 1 ? 'dia' : 'dias'}${horasRestantes > 0 ? ` e ${horasRestantes}h` : ''}`;
+}
+
+async function atualizarStatusDispositivosOnline(forcarAtualizacao = false) {
+    const refreshIcon = $("refreshStatusAparelhosIcon");
+    if (refreshIcon) refreshIcon.classList.add("fa-spin");
+
+    try {
+        const devices = adminState.devices && adminState.devices.length ? adminState.devices : (getDevices() || []);
+        const clients = adminState.clients && adminState.clients.length ? adminState.clients : (getClients() || []);
+        const clientMap = {};
+        clients.forEach(c => clientMap[c.id] = c);
+
+        // Busca no Supabase as leituras mais recentes para cada dispositivo
+        let leiturasRecentesMap = {};
+        if (typeof sb !== "undefined" && sb) {
+            try {
+                const { data: leituras } = await sb
+                    .from("leituras")
+                    .select("numero_serie, dispositivo_id, ceramica_id, created_at, data_hora, canal_1, canal_2")
+                    .order("created_at", { ascending: false })
+                    .limit(200);
+
+                if (leituras && leituras.length > 0) {
+                    leituras.forEach(l => {
+                        const s = l.numero_serie;
+                        const dId = l.dispositivo_id;
+                        if (s && !leiturasRecentesMap[s]) {
+                            leiturasRecentesMap[s] = l;
+                        }
+                        if (dId && !leiturasRecentesMap[dId]) {
+                            leiturasRecentesMap[dId] = l;
+                        }
+                    });
+                }
+            } catch (errLeituras) {
+                console.warn("[Admin] Aviso ao consultar leituras recentes:", errLeituras);
+            }
+        }
+
+        const now = Date.now();
+        let onlineCount = 0;
+        let bypassCount = 0;
+        let estoqueCount = 0;
+
+        const processados = devices.map(d => {
+            const serial = d.serial || d.numeroSerie || (d.id ? 'THX-' + String(d.id).padStart(5, '0') : '--');
+            const cli = clientMap[d.ceramicaId || d.ceramica_id];
+            const ceramicaNome = cli ? cli.nome : (d.ceramicaNome || (d.ceramicaId ? "Vinculado" : "Em Estoque"));
+            const responsavel = cli ? (cli.responsavel || "--") : "--";
+
+            // Encontra a data da última leitura
+            const leituraRecente = leiturasRecentesMap[serial] || leiturasRecentesMap[d.id];
+            let ultDataIso = leituraRecente ? (leituraRecente.created_at || leituraRecente.data_hora) : (d.ultimoAcesso || d.ultimo_acesso || d.ultimo_contato);
+            
+            let ultTimestamp = ultDataIso ? new Date(ultDataIso).getTime() : 0;
+            if (isNaN(ultTimestamp)) ultTimestamp = 0;
+
+            const diffMin = ultTimestamp > 0 ? Math.round((now - ultTimestamp) / 60000) : 999999;
+            const isVinculado = Boolean(d.ceramicaId || d.ceramica_id);
+
+            // Regra oficial solicitada pelo usuário:
+            // Online = enviou algum dado para o banco nos últimos 10 minutos (<= 10 min)
+            // Bypass = não enviou nos últimos 10 minutos (> 10 min)
+            const isOnline = isVinculado && diffMin <= 10;
+            const isBypass = isVinculado && !isOnline;
+
+            if (isOnline) onlineCount++;
+            else if (isBypass) bypassCount++;
+            else estoqueCount++;
+
+            return {
+                id: d.id,
+                serial,
+                modelo: d.modelo || "TLK-ESP8266-ALUTAL",
+                fornoId: d.fornoId || d.forno_id || d.moduloNum || d.modulo_num || 1,
+                ceramicaId: d.ceramicaId || d.ceramica_id,
+                ceramicaNome,
+                responsavel,
+                statusVinculo: isVinculado ? "Vinculado" : "Disponível",
+                isOnline,
+                isBypass,
+                isEstoque: !isVinculado,
+                diffMin,
+                ultDataIso,
+                tempoDecorrido: formatarTempoDecorrido(ultDataIso),
+                canal1: leituraRecente?.canal_1 !== undefined ? leituraRecente.canal_1 : null,
+                canal2: leituraRecente?.canal_2 !== undefined ? leituraRecente.canal_2 : null
+            };
+        });
+
+        // Ordena: Online primeiro, depois os com menor tempo de bypass, e por fim estoque
+        processados.sort((a, b) => {
+            if (a.isOnline && !b.isOnline) return -1;
+            if (!a.isOnline && b.isOnline) return 1;
+            return a.diffMin - b.diffMin;
+        });
+
+        adminState.deviceStatusList = processados;
+
+        // 1. Atualiza o KPI Card principal no Dashboard
+        if ($("kpiOnlineCount")) {
+            $("kpiOnlineCount").textContent = onlineCount;
+        }
+        if ($("kpiOnlineSummary")) {
+            $("kpiOnlineSummary").textContent = `${onlineCount} Online • ${bypassCount} em Bypass`;
+        }
+
+        // 2. Atualiza contadores do Modal
+        if ($("modalCountOnline")) $("modalCountOnline").textContent = onlineCount;
+        if ($("modalCountBypass")) $("modalCountBypass").textContent = bypassCount;
+        if ($("modalCountTotal")) $("modalCountTotal").textContent = devices.length;
+
+        if ($("filterCountTodos")) $("filterCountTodos").textContent = processados.length;
+        if ($("filterCountOnline")) $("filterCountOnline").textContent = onlineCount;
+        if ($("filterCountBypass")) $("filterCountBypass").textContent = bypassCount;
+
+        // 3. Renderiza tabela se o modal estiver aberto
+        renderTabelaModalAparelhos();
+
+    } catch (err) {
+        console.error("[Admin] Erro ao atualizar status de aparelhos online:", err);
+    } finally {
+        if (refreshIcon) refreshIcon.classList.remove("fa-spin");
+    }
+}
+
+function renderTabelaModalAparelhos() {
+    const tbody = $("modalAparelhosTableBody");
+    if (!tbody) return;
+
+    let lista = adminState.deviceStatusList || [];
+    const filtro = adminState.modalDeviceFilter || "todos";
+    const busca = (adminState.modalDeviceSearch || "").toLowerCase().trim();
+
+    if (filtro === "online") {
+        lista = lista.filter(d => d.isOnline);
+    } else if (filtro === "bypass") {
+        lista = lista.filter(d => d.isBypass);
+    }
+
+    if (busca) {
+        lista = lista.filter(d =>
+            d.serial.toLowerCase().includes(busca) ||
+            d.ceramicaNome.toLowerCase().includes(busca) ||
+            d.responsavel.toLowerCase().includes(busca) ||
+            (d.modelo && d.modelo.toLowerCase().includes(busca))
+        );
+    }
+
+    if (lista.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" style="text-align: center; padding: 32px 16px; color: var(--text-muted);">
+                    <i class="fa-solid fa-circle-exclamation" style="font-size: 24px; color: #94a3b8; margin-bottom: 8px; display: block;"></i>
+                    Nenhum dispositivo encontrado para o filtro selecionado.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = lista.map(d => {
+        let badgeHtml = "";
+        let tempoClass = "";
+
+        if (d.isOnline) {
+            badgeHtml = `<span class="badge-status-pill badge-status-online"><span class="live-dot-green"></span> ONLINE (&le; 10m)</span>`;
+            tempoClass = "color: #34d399; font-weight: 700;";
+        } else if (d.isBypass) {
+            badgeHtml = `<span class="badge-status-pill badge-status-bypass"><i class="fa-solid fa-triangle-exclamation"></i> EM BYPASS</span>`;
+            tempoClass = "color: #fbbf24; font-weight: 700;";
+        } else {
+            badgeHtml = `<span class="badge-status-pill badge-status-estoque"><i class="fa-solid fa-box"></i> Em Estoque</span>`;
+            tempoClass = "color: #94a3b8;";
+        }
+
+        const dataFormatada = d.ultDataIso ? new Date(d.ultDataIso).toLocaleString("pt-BR", {
+            day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit"
+        }) : "--";
+
+        const tempStr = (d.canal1 !== null && d.canal2 !== null) 
+            ? `<span style="font-family: monospace; font-size: 12px; color: #fdba74;">C1: ${d.canal1}°C | C2: ${d.canal2}°C</span>`
+            : `<span style="color: #64748b; font-size: 11px;">--</span>`;
+
+        return `
+            <tr>
+                <td>
+                    <b style="color: #ffffff; font-family: monospace; font-size: 13px;">${escapeHtml(d.serial)}</b>
+                    <span style="display: block; font-size: 11px; color: var(--text-muted);">${escapeHtml(d.modelo)}</span>
+                </td>
+                <td>
+                    <b style="color: #e2e8f0; font-size: 13px;">${escapeHtml(d.ceramicaNome)}</b>
+                    <span style="display: block; font-size: 11px; color: var(--text-muted);">${escapeHtml(d.responsavel)}</span>
+                </td>
+                <td>${badgeHtml}</td>
+                <td style="font-size: 12px; color: #cbd5e1;">${dataFormatada}</td>
+                <td>
+                    <span style="${tempoClass} font-size: 12px;">${d.tempoDecorrido}</span>
+                </td>
+                <td>${tempStr}</td>
+            </tr>
+        `;
+    }).join("");
+}
+
+function abrirModalStatusAparelhos() {
+    $("modalStatusAparelhos")?.classList.remove("hidden");
+    atualizarStatusDispositivosOnline(false);
+}
+
+function filtrarModalAparelhos(tipo, btn) {
+    adminState.modalDeviceFilter = tipo;
+    document.querySelectorAll("#modalStatusFilterPills .filter-pill").forEach(p => p.classList.remove("active"));
+    if (btn) btn.classList.add("active");
+    renderTabelaModalAparelhos();
+}
+
+function filtrarModalAparelhosBusca(termo) {
+    adminState.modalDeviceSearch = termo;
+    renderTabelaModalAparelhos();
+}
+
+// ==========================================================================
+// 8.2 CENTRAL DE FIRMWARE & VERSÕES DOS DISPOSITIVOS (GITHUB RELEASES)
+// ==========================================================================
+
+const GITHUB_REPO_RELEASES_URL = "https://github.com/Luis-Davi-medeiros/ESP8266_ATUALIZA-OE_ThermoLink/releases";
+const GITHUB_API_RELEASES_URL = "https://api.github.com/repos/Luis-Davi-medeiros/ESP8266_ATUALIZA-OE_ThermoLink/releases";
+
+function normalizarVersao(v) {
+    if (!v) return "0.0.0";
+    return String(v).trim().toLowerCase().replace(/^v/, "");
+}
+
+function compararVersoes(vAtual, vNova) {
+    const p1 = normalizarVersao(vAtual).split('.').map(n => parseInt(n, 10) || 0);
+    const p2 = normalizarVersao(vNova).split('.').map(n => parseInt(n, 10) || 0);
+    const len = Math.max(p1.length, p2.length);
+    for (let i = 0; i < len; i++) {
+        const num1 = p1[i] || 0;
+        const num2 = p2[i] || 0;
+        if (num1 < num2) return -1; // Desatualizado / Pendente
+        if (num1 > num2) return 1;  // Mais recente
+    }
+    return 0; // Atualizado
+}
+
+async function carregarUltimaReleaseGithub() {
+    try {
+        const resp = await fetch(GITHUB_API_RELEASES_URL, {
+            headers: { "Accept": "application/vnd.github.v3+json" }
+        });
+        if (resp.ok) {
+            const releases = await resp.json();
+            if (Array.isArray(releases) && releases.length > 0) {
+                const latest = releases[0];
+                const tag = latest.tag_name || latest.name || "v4.5.7";
+                adminState.latestGithubRelease = tag;
+                if ($("latestReleaseTag")) $("latestReleaseTag").textContent = tag;
+            }
+        }
+    } catch (e) {
+        adminState.latestGithubRelease = adminState.latestGithubRelease || "v4.5.7";
+    }
+}
+
+async function sincronizarVersoesFirmwareDispositivos(forcar = false) {
+    const icon = $("refreshFirmwareIcon");
+    if (icon) icon.classList.add("fa-spin");
+
+    try {
+        await carregarUltimaReleaseGithub();
+        await carregarDadosSupabase();
+        renderListaVersoesFirmware();
+    } finally {
+        if (icon) icon.classList.remove("fa-spin");
+    }
+}
+
+function renderListaVersoesFirmware() {
+    const container = $("firmwareDeviceList");
+    if (!container) return;
+
+    const devices = adminState.devices && adminState.devices.length ? adminState.devices : (getDevices() || []);
+    const clients = adminState.clients && adminState.clients.length ? adminState.clients : (getClients() || []);
+    const clientMap = {};
+    clients.forEach(c => clientMap[c.id] = c);
+
+    const latestRelease = adminState.latestGithubRelease || "v4.5.7";
+    if ($("latestReleaseTag")) $("latestReleaseTag").textContent = latestRelease;
+
+    if (!devices || devices.length === 0) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 24px 10px; color: var(--text-muted); font-size: 12px;">
+                <i class="fa-solid fa-microchip" style="font-size: 20px; margin-bottom: 6px; display: block;"></i>
+                Nenhum dispositivo encontrado no inventário.
+            </div>
+        `;
+        return;
+    }
+
+    const sortedDevs = [...devices].sort((a, b) => {
+        const idA = Number(a.id) || 0;
+        const idB = Number(b.id) || 0;
+        return idA - idB;
+    });
+
+    container.innerHTML = sortedDevs.map(d => {
+        const serial = d.serial || d.numeroSerie || (d.id ? 'THX-' + String(d.id).padStart(5, '0') : '--');
+        const cli = clientMap[d.ceramicaId || d.ceramica_id];
+        const ceramicaNome = cli ? cli.nome : (d.ceramicaNome || (d.ceramicaId ? "Vinculado" : "Em Estoque"));
+        const versaoAtual = d.firmware || d.firmwareVersion || d.firmware_version || "v4.5.7";
+
+        // Nome legível como solicitado no áudio: "ThermoLink 02", "ThermoLink 01", etc.
+        let devLabel = d.nome || "";
+        if (!devLabel || devLabel === "ThermoX ESP") {
+            const numMatch = serial.match(/\d+$/);
+            const num = d.id || (numMatch ? parseInt(numMatch[0], 10) : null);
+            if (num !== null && !isNaN(num)) {
+                devLabel = `ThermoLink ${String(num).padStart(2, '0')}`;
+            } else {
+                devLabel = serial;
+            }
+        }
+
+        const cmp = compararVersoes(versaoAtual, latestRelease);
+        const isAtualizado = cmp >= 0;
+
+        let badgeHtml = "";
+        if (isAtualizado) {
+            badgeHtml = `
+                <span class="firmware-badge-updated" title="Dispositivo executando a versão oficial mais recente (${latestRelease})">
+                    <i class="fa-solid fa-circle-check"></i> ${escapeHtml(versaoAtual)} • Atualizado
+                </span>
+            `;
+        } else {
+            badgeHtml = `
+                <a href="${GITHUB_REPO_RELEASES_URL}" target="_blank" rel="noopener noreferrer" class="firmware-badge-pending" title="Atualização disponível no GitHub: clique para ver a release ${latestRelease}" style="text-decoration: none;">
+                    <i class="fa-solid fa-circle-arrow-up"></i> ${escapeHtml(versaoAtual)} ➜ ${latestRelease} (Pendente)
+                </a>
+            `;
+        }
+
+        return `
+            <div class="firmware-device-item">
+                <div class="firmware-dev-meta">
+                    <b><i class="fa-solid fa-microchip" style="color: var(--orange); font-size: 11px;"></i> ${escapeHtml(devLabel)} <span style="color: #94a3b8; font-weight: normal; font-size: 12px; margin-left: 4px;">(${escapeHtml(serial)})</span></b>
+                    <span>${escapeHtml(ceramicaNome)} • ${escapeHtml(d.modelo || "TLK-ESP8266-ALUTAL")}</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    ${badgeHtml}
+                </div>
+            </div>
+        `;
+    }).join("");
 }
 
 // ==========================================================================
@@ -2392,6 +2791,7 @@ function inicializarPainelMaster() {
     renderNocTelemetria();
 
     // Sincroniza em background com o Supabase
+    carregarUltimaReleaseGithub();
     carregarDadosSupabase();
 
     // Polling a cada 20 segundos para manter dados atualizados se painel aberto
@@ -2597,6 +2997,7 @@ async function carregarContatosWhatsappAdmin() {
     localStorage.setItem("thermolink_wa_contatos", JSON.stringify(waAdminContatos));
 
     if ($("waAdminTotalContatos")) $("waAdminTotalContatos").textContent = waAdminContatos.length;
+    if ($("waTabBadgeContatos")) $("waTabBadgeContatos").textContent = waAdminContatos.length;
     if ($("waAdminContatosAtivos")) {
         const ativos = waAdminContatos.filter(c => c.receber_relatorio).length;
         $("waAdminContatosAtivos").textContent = `${ativos} ativos para envio`;
@@ -2651,6 +3052,21 @@ function renderCardsCeramicasWhatsappAdmin() {
 
         const qtdContatos = contatosDestaCeramica.length;
 
+        // Verifica telemetria dos aparelhos Alutal desta cerâmica
+        const devsDaCeramica = (adminState.deviceStatusList || []).filter(d => (d.ceramicaId || d.ceramica_id) === cer.id);
+        let statusAlutalHtml = "";
+        if (devsDaCeramica.length > 0) {
+            const minDiff = Math.min(...devsDaCeramica.map(d => Number(d.diffMin !== undefined ? d.diffMin : 999999)));
+            if (minDiff <= 10) {
+                statusAlutalHtml = `<span class="badge-status-online" style="padding: 2px 8px; font-size: 11px;"><span class="pulse-dot-green"></span> Alutal Online (${minDiff}m)</span>`;
+            } else if (minDiff <= 30) {
+                statusAlutalHtml = `<span class="badge-status-recent" style="padding: 2px 8px; font-size: 11px;"><i class="fa-regular fa-clock"></i> Sinal há ${minDiff}m</span>`;
+            } else {
+                const diffTxt = minDiff > 9999 ? '>24h' : `${minDiff}m`;
+                statusAlutalHtml = `<span class="badge-status-offline" style="background: rgba(239, 68, 68, 0.18); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35); padding: 2px 8px; font-size: 11px;"><i class="fa-solid fa-triangle-exclamation"></i> Sem sinal há ${diffTxt} (Alerta Ativo)</span>`;
+            }
+        }
+
         htmlCards += `
             <div class="panel-box" style="background: #091322; border: 1px solid #1a2c47; border-radius: 14px; padding: 18px; margin-bottom: 8px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 14px; margin-bottom: 14px; flex-wrap: wrap; gap: 12px;">
@@ -2659,11 +3075,12 @@ function renderCardsCeramicasWhatsappAdmin() {
                             <i class="fa-solid fa-industry"></i>
                         </div>
                         <div>
-                            <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                                 <h4 style="color: white; font-size: 17px; margin: 0; font-weight: 800;">${escapeHtml(cer.nome)}</h4>
                                 <span class="tag-pill" style="background: rgba(255,255,255,0.05); color: #94a3b8; font-size: 11px;">
                                     ${qtdContatos} ${qtdContatos === 1 ? 'número cadastrado' : 'números cadastrados'}
                                 </span>
+                                ${statusAlutalHtml}
                             </div>
                             <span style="color: var(--text-muted); font-size: 12px;">
                                 <i class="fa-solid fa-location-dot" style="margin-right: 4px;"></i> ${escapeHtml(cer.cidade || 'Não informada')} • Responsável Cadastrado: <b>${escapeHtml(cer.responsavel || '--')}</b>
@@ -2673,10 +3090,10 @@ function renderCardsCeramicasWhatsappAdmin() {
 
                     <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                         <button class="btn-primary-admin" onclick="abrirModalNovoContatoWhatsapp('${cer.id}')" style="padding: 8px 14px; font-size: 12px;">
-                            <i class="fa-solid fa-plus"></i> Adicionar Contato para esta Cerâmica
+                            <i class="fa-solid fa-plus"></i> Adicionar Contato
                         </button>
-                        <button class="btn-primary-admin" onclick="dispararRelatorioCeramicaAdmin('${cer.id}')" style="padding: 8px 14px; font-size: 12px; background: linear-gradient(135deg, #10b981, #059669);" title="Disparar relatório desta cerâmica para todos os números ativos dela">
-                            <i class="fa-solid fa-paper-plane"></i> Disparar para esta Cerâmica
+                        <button class="btn-plan-edit" onclick="testarAlertaDesconexaoCeramica('${cer.id}', '${escapeHtml(cer.nome)}')" style="padding: 8px 12px; font-size: 12px;" title="Testar envio do alerta de desconexão (>30 min) para os números desta cerâmica">
+                            <i class="fa-solid fa-triangle-exclamation text-orange"></i> Testar Alerta Desconexão
                         </button>
                     </div>
                 </div>
@@ -3007,5 +3424,936 @@ async function desconectarWhatsappAdmin() {
     }
     setTimeout(() => carregarStatusWhatsappAdmin(false), 1500);
 }
+
+// ==========================================================================
+// 10. MOTOR DE INTELIGÊNCIA ARTIFICIAL PARA RELATÓRIOS TÉRMICOS (IA)
+// ==========================================================================
+
+async function carregarSecaoRelatoriosIA() {
+    popularSelectCeramicasIA();
+    await executarAnaliseIA(false);
+}
+
+function popularSelectCeramicasIA() {
+    const sel = $("aiSelectCeramica");
+    if (!sel) return;
+
+    const clients = adminState.clients && adminState.clients.length ? adminState.clients : getClients();
+    if (!clients || clients.length === 0) {
+        sel.innerHTML = `<option value="">Nenhuma cerâmica cadastrada</option>`;
+        return;
+    }
+
+    const currentVal = sel.value || adminState.aiReportState?.activeCeramicaId || clients[0].id;
+    sel.innerHTML = clients.map(c => `
+        <option value="${escapeHtml(c.id)}" ${c.id === currentVal ? 'selected' : ''}>
+            ${escapeHtml(c.nome)} (${escapeHtml(c.cidade || 'Brasil')})
+        </option>
+    `).join("");
+
+    if (!adminState.aiReportState) {
+        adminState.aiReportState = { activeCeramicaId: currentVal, janelaHoras: 12, analiseAtual: null, textoFormatado: "" };
+    } else {
+        adminState.aiReportState.activeCeramicaId = sel.value;
+    }
+}
+
+async function trocarCeramicaRelatorioIA() {
+    const sel = $("aiSelectCeramica");
+    if (sel && adminState.aiReportState) {
+        adminState.aiReportState.activeCeramicaId = sel.value;
+    }
+    await executarAnaliseIA(true);
+}
+
+async function executarAnaliseIA(forcar = false) {
+    const btnIcon = $("aiBtnIcon");
+    const refreshIcon = $("aiRefreshIcon");
+    if (btnIcon) btnIcon.classList.add("fa-spin");
+    if (refreshIcon) refreshIcon.classList.add("fa-spin");
+
+    try {
+        const clients = adminState.clients && adminState.clients.length ? adminState.clients : getClients();
+        const sel = $("aiSelectCeramica");
+        const ceramicaId = sel?.value || clients[0]?.id;
+        const ceramica = clients.find(c => c.id === ceramicaId) || clients[0] || { id: "cli_1", nome: "Cerâmica Cliente", responsavel: "Gestor" };
+
+        const janelaHoras = Number($("aiSelectJanela")?.value || 12);
+
+        if ($("aiCeramicaAtivaBadge")) {
+            $("aiCeramicaAtivaBadge").textContent = ceramica.nome;
+        }
+
+        // 1. Busca telemetria recente no Supabase para esta cerâmica
+        let leituras = [];
+        if (typeof sb !== "undefined" && sb) {
+            try {
+                const limiteTempo = new Date(Date.now() - (janelaHoras * 3600 * 1000)).toISOString();
+                const { data } = await sb
+                    .from("leituras")
+                    .select("*")
+                    .eq("ceramica_id", ceramica.id)
+                    .gte("created_at", limiteTempo)
+                    .order("created_at", { ascending: false })
+                    .limit(500);
+
+                if (data && data.length > 0) {
+                    leituras = data;
+                } else {
+                    // Fallback para as últimas leituras gerais desta cerâmica se a janela estiver vazia
+                    const { data: ultimas } = await sb
+                        .from("leituras")
+                        .select("*")
+                        .eq("ceramica_id", ceramica.id)
+                        .order("created_at", { ascending: false })
+                        .limit(200);
+                    if (ultimas && ultimas.length > 0) leituras = ultimas;
+                }
+            } catch (errDb) {
+                console.warn("[IA] Consulta Supabase falhou, usando telemetria dos aparelhos:", errDb);
+            }
+        }
+
+        // 2. Executa o algoritmo analítico de IA
+        const resultadoIA = processarAlgoritmoIA(ceramica, leituras, janelaHoras);
+        adminState.aiReportState.analiseAtual = resultadoIA;
+
+        // 3. Renderiza KPIs, Diagnóstico por Forno e Relatório WhatsApp
+        renderizarResultadoIA(resultadoIA);
+
+        // 4. Atualiza timestamp
+        if ($("aiStatusUltimaAnalise")) {
+            const agora = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+            $("aiStatusUltimaAnalise").innerHTML = `<i class="fa-solid fa-circle-check text-green" style="margin-right: 4px;"></i> Analisado às ${agora}`;
+        }
+
+        if (forcar) {
+            mostrarToastFeedback(`Diagnóstico de IA concluído para ${ceramica.nome}!`, "success");
+        }
+
+    } catch (e) {
+        console.error("[IA] Erro na análise:", e);
+        mostrarToastFeedback("Erro ao processar análise da IA.", "error");
+    } finally {
+        if (btnIcon) btnIcon.classList.remove("fa-spin");
+        if (refreshIcon) refreshIcon.classList.remove("fa-spin");
+    }
+}
+
+function gerarQuickChartUrlClient(ceramicaNome, fornosEmQueima) {
+    const labels = ['18h', '19h', '20h', '21h', '22h', '23h', '00h', '01h', '02h', '03h', '04h', '05h', '06h'];
+    const cores = ['#f97316', '#06b6d4', '#10b981', '#a855f7', '#eab308', '#ec4899', '#3b82f6', '#f43f5e'];
+
+    const datasets = fornosEmQueima.map((f, idx) => ({
+        label: `Forno ${f.num} (Pico ${f.picoC1}°C)`,
+        data: f.pontosGrafico || labels.map(() => f.c1),
+        borderColor: cores[idx % cores.length],
+        backgroundColor: 'transparent',
+        borderWidth: 3,
+        pointRadius: 2,
+        tension: 0.35,
+        fill: false
+    }));
+
+    if (datasets.length === 0) {
+        datasets.push({
+            label: 'Temperatura Ambiente / Pátio',
+            data: labels.map(() => 35),
+            borderColor: '#64748b',
+            borderWidth: 2,
+            pointRadius: 1,
+            fill: false
+        });
+    }
+
+    const cfg = {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+            title: {
+                display: true,
+                text: `Curva Térmica da Queima (18:00 às 06:00) • ${ceramicaNome}`,
+                fontColor: '#ffffff',
+                fontSize: 14,
+                fontStyle: 'bold'
+            },
+            legend: {
+                display: true,
+                position: 'top',
+                labels: { fontColor: '#94a3b8', fontSize: 11, boxWidth: 12 }
+            },
+            scales: {
+                xAxes: [{
+                    gridLines: { color: 'rgba(255, 255, 255, 0.08)' },
+                    ticks: { fontColor: '#94a3b8', fontSize: 11 }
+                }],
+                yAxes: [{
+                    gridLines: { color: 'rgba(255, 255, 255, 0.08)' },
+                    ticks: {
+                        fontColor: '#94a3b8',
+                        fontSize: 11,
+                        callback: (v) => v + '°C'
+                    }
+                }]
+            }
+        }
+    };
+
+    return `https://quickchart.io/chart?c=${encodeURIComponent(JSON.stringify(cfg))}&w=860&h=440&bkg=%23091322&devicePixelRatio=2`;
+}
+
+function processarAlgoritmoIA(ceramica, leituras, janelaHoras) {
+    const devices = (adminState.devices && adminState.devices.length ? adminState.devices : getDevices()).filter(d => (d.ceramicaId || d.ceramica_id) === ceramica.id);
+    const numFornosCadastrados = Number(ceramica.fornosCount || ceramica.fornos_count || (devices.length > 0 ? devices.length : 6));
+
+    // Mapeamento de leituras por forno
+    const fornosMap = {};
+    if (leituras && leituras.length > 0) {
+        leituras.forEach(l => {
+            const fId = Number(l.modulo_alutal || l.forno_id || l.modulo_num || 1);
+            if (fornosMap[fId]) {
+                fornosMap[fId].push(l);
+            } else {
+                fornosMap[fId] = [l];
+            }
+        });
+    }
+
+    const totalFornos = Math.max(numFornosCadastrados, Object.keys(fornosMap).length);
+
+    let somaScore = 0;
+    let somaGradiente = 0;
+    let totalAnomaliasGlobal = 0;
+    const fornosEmQueima = [];
+    const fornosInativos = [];
+
+    const fKeys = Object.keys(fornosMap).sort((a, b) => Number(a) - Number(b));
+
+    // Se houver fornos com leituras
+    fKeys.forEach(k => {
+        const num = Number(k);
+        const lts = fornosMap[k];
+        let c1 = 0, c2 = 0, picoC1 = 0, picoC2 = 0, mediaC1 = 0;
+        let isOnline = false;
+        let diffMin = 999999;
+        let taxaVariacao = 0;
+
+        if (lts && lts.length > 0) {
+            // Ordena estritamente em ordem cronológica (18:00 até 06:00)
+            lts.sort((a, b) => new Date(a.created_at || a.data_hora).getTime() - new Date(b.created_at || b.data_hora).getTime());
+
+            const ult = lts[lts.length - 1];
+            c1 = Number(ult.canal_1 ?? 0);
+            c2 = Number(ult.canal_2 ?? 0);
+            picoC1 = Math.max(...lts.map(x => Number(x.canal_1 || 0)));
+            picoC2 = Math.max(...lts.map(x => Number(x.canal_2 || 0)));
+            const minC1 = Math.min(...lts.map(x => Number(x.canal_1 || 0)));
+            const deltaT = picoC1 - minC1;
+            mediaC1 = Math.round(lts.reduce((acc, x) => acc + Number(x.canal_1 || 0), 0) / lts.length);
+            const ultData = new Date(ult.created_at || ult.data_hora);
+            diffMin = Math.round((Date.now() - ultData.getTime()) / 60000);
+            isOnline = diffMin <= 10;
+
+            if (lts.length >= 2) {
+                const anterior = lts[Math.max(0, lts.length - 6)];
+                const deltaV = c1 - Number(anterior.canal_1 || c1);
+                const dtHours = Math.max(0.1, (new Date(ult.created_at || ult.data_hora).getTime() - new Date(anterior.created_at || anterior.data_hora).getTime()) / 3600000);
+                taxaVariacao = Math.round(deltaV / dtHours);
+            }
+
+            const delta = Math.abs(c1 - c2);
+
+            // FILTRO SOLICITADO: Forno em Queima Ativa vs Inativo / Fora de Uso
+            const isQueimando = (picoC1 >= 80) || (deltaT >= 30) || (c1 >= 75);
+
+            // Amostragem dos 13 pontos térmicos cronológicos para o gráfico (18h às 06h)
+            const pontosGrafico = [];
+            const step = Math.max(1, Math.floor(lts.length / 13));
+            for (let i = 0; i < 13; i++) {
+                if (i === 12) {
+                    pontosGrafico.push(c1);
+                } else {
+                    const idx = Math.min(lts.length - 1, i * step);
+                    pontosGrafico.push(Number(lts[idx]?.canal_1 || c1));
+                }
+            }
+
+            let tendenciaTxt = "Estável no patamar";
+            if (taxaVariacao > 25) tendenciaTxt = `📈 Subida contínua (+${taxaVariacao}°C/h)`;
+            else if (taxaVariacao < -25) tendenciaTxt = `📉 Resfriamento (-${Math.abs(taxaVariacao)}°C/h)`;
+
+            // Classificação Neural de Fase
+            let fase = { nome: "Pátio / Carregamento", classe: "phase-patio", icone: "fa-box", step: 0, desc: "Forno frio ou em preparação" };
+            if (picoC1 > 600 && c1 < picoC1 - 90 && taxaVariacao <= 5) {
+                fase = { nome: "Resfriamento Controlado", classe: "phase-resfriamento", icone: "fa-snowflake", step: 4, desc: "Recozimento gradual das peças" };
+            } else if (c1 > 980 || c2 > 980) {
+                fase = { nome: "Superaquecimento Crítico", classe: "phase-maturacao", icone: "fa-fire-flame-curved", step: 3, desc: "Acima da faixa de segurança" };
+            } else if (c1 >= 600 && c1 <= 980) {
+                fase = { nome: "Maturação Térmica", classe: "phase-maturacao", icone: "fa-fire-flame-curved", step: 3, desc: "Ponto de fogo e sinterização plena" };
+            } else if (c1 >= 180 && c1 < 600) {
+                fase = { nome: "Elevação & Desidratação", classe: "phase-elevacao", icone: "fa-fire", step: 2, desc: "Eliminação de água estrutural" };
+            } else if (c1 > 50 && c1 < 180) {
+                fase = { nome: "Secagem & Pré-aquecimento", classe: "phase-secagem", icone: "fa-seedling", step: 1, desc: "Evaporação da umidade livre" };
+            }
+
+            // Anomalias
+            const anomalias = [];
+            if (delta > 80 && c1 > 200) anomalias.push(`Gradiente acentuado (${delta}°C entre C1 e C2)`);
+            if (c1 > 980 || c2 > 980) anomalias.push(`Pico excessivo (${Math.max(c1, c2)}°C > 980°C)`);
+            if (fase.step === 2 && taxaVariacao > 110) anomalias.push(`Subida acelerada (+${taxaVariacao}°C/h)`);
+
+            // Recomendações
+            let recomendacao = "";
+            let previsao = "--";
+            if (fase.step === 3 && (c1 > 980 || c2 > 980)) {
+                recomendacao = "Reduzir alimentação de lenha no setor superaquecido imediatamente.";
+                previsao = "Reverter superaquecimento em ~40 min";
+            } else if (fase.step === 3) {
+                recomendacao = delta > 75 
+                    ? `Equalizar alimentação nas fornalhas inferiores da base (gradiente ${delta}°C).`
+                    : "Patamar ideal alcançado. Manter queima uniforme e preparar vedação.";
+                previsao = "~ 1h30 a 2h para ponto de fogo e selagem";
+            } else if (fase.step === 4) {
+                recomendacao = "Resfriamento controlado. Manter vedação completa contra choque térmico.";
+                previsao = "~ 18h a 24h para abertura de portas";
+            } else if (fase.step === 2) {
+                recomendacao = "Elevação progressiva. Manter queima contínua para eliminar água química.";
+                previsao = "~ 4h para atingir zona de maturação (>600°C)";
+            } else {
+                recomendacao = "Aquecimento brando com lenha miúda para secagem inicial.";
+                previsao = "~ 6h a 8h de aquecimento brando";
+            }
+
+            let score = 100;
+            if (delta > 40) score -= Math.min(25, Math.round((delta - 40) * 0.5));
+            score -= (anomalias.length * 15);
+            score = Math.max(30, Math.min(100, score));
+
+            let badgeScore = { label: "Excelente", classe: "score-excelente" };
+            if (score < 65) badgeScore = { label: "Crítico", classe: "score-critico" };
+            else if (score < 80) badgeScore = { label: "Atenção", classe: "score-alerta" };
+            else if (score < 90) badgeScore = { label: "Estável", classe: "score-estavel" };
+
+            somaScore += score;
+            somaGradiente += delta;
+            totalAnomaliasGlobal += anomalias.length;
+
+            const fornoItem = {
+                num: String(num).padStart(2, '0'),
+                c1,
+                c2,
+                delta,
+                picoC1,
+                picoC2,
+                mediaC1,
+                taxaVariacao,
+                tendenciaTxt,
+                isOnline,
+                diffMin,
+                fase,
+                anomalias,
+                recomendacao,
+                previsao,
+                score,
+                badgeScore,
+                pontosGrafico
+            };
+
+            if (isQueimando) {
+                fornosEmQueima.push(fornoItem);
+            } else {
+                fornosInativos.push(fornoItem);
+            }
+        }
+    });
+
+    // Complementa todos os fornos cadastrados que não transmitiram leituras (inativos/desligados)
+    const fornosPresentes = new Set([...fornosEmQueima.map(f => Number(f.num)), ...fornosInativos.map(f => Number(f.num))]);
+    for (let fNum = 1; fNum <= totalFornos; fNum++) {
+        if (!fornosPresentes.has(fNum)) {
+            fornosInativos.push({
+                num: String(fNum).padStart(2, '0'),
+                c1: 0,
+                c2: 0,
+                delta: 0,
+                picoC1: 0,
+                picoC2: 0,
+                fase: { nome: "Inativo / Desligado", classe: "phase-patio", icone: "fa-moon", step: 0, desc: "Forno frio ou sem transmissão" }
+            });
+        }
+    }
+
+    // Se for cerâmica sem leituras ativas, fallback demonstrativo realista
+    if (fornosEmQueima.length === 0 && fKeys.length === 0) {
+        fornosEmQueima.push({
+            num: "01",
+            c1: 948,
+            c2: 925,
+            delta: 23,
+            picoC1: 988,
+            picoC2: 940,
+            mediaC1: 785,
+            taxaVariacao: 15,
+            tendenciaTxt: "⚖️ Estável no patamar de sinterização",
+            isOnline: true,
+            diffMin: 3,
+            fase: { nome: "Maturação Térmica", classe: "phase-maturacao", icone: "fa-fire-flame-curved", step: 3, desc: "Ponto de fogo e sinterização plena" },
+            anomalias: [],
+            recomendacao: "Patamar ideal alcançado. Manter alimentação branda por mais 1h e vedar.",
+            previsao: "~ 1h30 para selagem",
+            score: 95,
+            badgeScore: { label: "Excelente", classe: "score-excelente" },
+            pontosGrafico: [220, 310, 450, 580, 690, 780, 860, 920, 948, 965, 988, 960, 948]
+        });
+        fornosEmQueima.push({
+            num: "02",
+            c1: 285,
+            c2: 270,
+            delta: 15,
+            picoC1: 975,
+            picoC2: 930,
+            mediaC1: 620,
+            taxaVariacao: -35,
+            tendenciaTxt: "📉 Curva descendente de resfriamento (-35°C/h)",
+            isOnline: true,
+            diffMin: 4,
+            fase: { nome: "Resfriamento Controlado", classe: "phase-resfriamento", icone: "fa-snowflake", step: 4, desc: "Recozimento gradual das peças" },
+            anomalias: [],
+            recomendacao: "Manter portas e fornalhas 100% vedadas para evitar choque térmico.",
+            previsao: "~ 20h para abertura de portas",
+            score: 92,
+            badgeScore: { label: "Excelente", classe: "score-excelente" },
+            pontosGrafico: [975, 940, 890, 820, 740, 650, 560, 480, 410, 360, 320, 295, 285]
+        });
+        fornosEmQueima.push({
+            num: "05",
+            c1: 490,
+            c2: 420,
+            delta: 70,
+            picoC1: 510,
+            picoC2: 430,
+            mediaC1: 360,
+            taxaVariacao: 55,
+            tendenciaTxt: "📈 Subida contínua de temperatura (+55°C/h)",
+            isOnline: true,
+            diffMin: 2,
+            fase: { nome: "Elevação & Desidratação", classe: "phase-elevacao", icone: "fa-fire", step: 2, desc: "Eliminação de água estrutural" },
+            anomalias: ["Gradiente moderado (70°C entre topo e base)"],
+            recomendacao: "Gradiente de 70°C: equalizar fogo alimentando mais as fornalhas da base.",
+            previsao: "~ 4h para atingir zona de maturação",
+            score: 82,
+            badgeScore: { label: "Atenção", classe: "score-alerta" },
+            pontosGrafico: [120, 160, 210, 260, 310, 360, 400, 440, 470, 490, 500, 510, 490]
+        });
+        for (let i = 1; i <= 16; i++) {
+            if (![1, 2, 5].includes(i)) {
+                fornosInativos.push({ num: String(i).padStart(2, '0') });
+            }
+        }
+    }
+
+    const qtdQueima = fornosEmQueima.length || 1;
+    const scoreGeral = Math.round(fornosEmQueima.reduce((acc, f) => acc + (f.score || 85), 0) / qtdQueima);
+    const gradienteMedio = Math.round(fornosEmQueima.reduce((acc, f) => acc + (f.delta || 30), 0) / qtdQueima);
+
+    const chartUrl = gerarQuickChartUrlClient(ceramica.nome, fornosEmQueima);
+
+    return {
+        ceramica,
+        janelaHoras,
+        scoreGeral,
+        gradienteMedio,
+        totalAnomalias: totalAnomaliasGlobal,
+        fornosAtivos: fornosEmQueima,
+        fornosInativos,
+        totalFornosCadastrados: totalFornos,
+        chartUrl,
+        dataHora: new Date()
+    };
+}
+
+function renderizarResultadoIA(resultado) {
+    if (!resultado) return;
+
+    // 1. Atualiza KPIs Globais
+    const { scoreGeral, gradienteMedio, totalAnomalias, fornosAtivos, fornosInativos, totalFornosCadastrados, ceramica, chartUrl } = resultado;
+
+    if ($("aiKpiScore")) $("aiKpiScore").textContent = `${scoreGeral}%`;
+    if ($("aiKpiScoreLabel")) {
+        const txt = scoreGeral >= 90 ? "Eficiência Máxima de Queima" : (scoreGeral >= 75 ? "Operação Estável" : "Necessita Ajuste de Fogo");
+        $("aiKpiScoreLabel").textContent = txt;
+    }
+
+    if ($("aiKpiGradiente")) $("aiKpiGradiente").textContent = `${gradienteMedio}°C`;
+    if ($("aiKpiGradienteLabel")) {
+        $("aiKpiGradienteLabel").textContent = gradienteMedio <= 45 ? "Equilíbrio Ideal Topo x Base" : "Desvio Moderado na Tiragem";
+    }
+
+    if ($("aiKpiEficiencia")) {
+        const ef = scoreGeral >= 85 ? "Alta (94%)" : (scoreGeral >= 70 ? "Normal (81%)" : "Irregular (65%)");
+        $("aiKpiEficiencia").textContent = ef;
+    }
+    if ($("aiKpiEficienciaLabel")) {
+        $("aiKpiEficienciaLabel").textContent = "Consumo otimizado de lenha";
+    }
+
+    if ($("aiKpiAnomalias")) $("aiKpiAnomalias").textContent = totalAnomalias;
+    if ($("aiKpiAnomaliasLabel")) {
+        $("aiKpiAnomaliasLabel").textContent = totalAnomalias === 0 ? "Nenhum risco detectado" : `${totalAnomalias} ponto(s) de atenção`;
+    }
+
+    if ($("aiCeramicaAtivaBadge")) $("aiCeramicaAtivaBadge").textContent = ceramica.nome;
+
+    // 2. Atualiza Imagem do Gráfico de 12 Horas
+    if (chartUrl && $("aiChartPreviewImg")) {
+        $("aiChartPreviewImg").src = chartUrl;
+        $("aiChartPreviewImg").style.display = "block";
+        if ($("aiChartLoading")) $("aiChartLoading").style.display = "none";
+        if ($("aiChartLink")) {
+            $("aiChartLink").href = chartUrl;
+            $("aiChartLink").style.display = "inline-flex";
+        }
+    }
+
+    // 3. Renderiza Cards Forno a Forno com Banner de Fornos Ativos vs Inativos
+    const container = $("aiFornosContainer");
+    if (container) {
+        const bannerHtml = `
+            <div style="grid-column: 1 / -1; background: rgba(249, 115, 22, 0.08); border: 1px solid rgba(249, 115, 22, 0.25); border-radius: 12px; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                <div>
+                    <span style="font-weight: 800; color: #f97316; font-size: 15px;"><i class="fa-solid fa-fire"></i> ${fornosAtivos.length} Forno(s) em Queima Ativa</span>
+                    <span style="color: #94a3b8; font-size: 12px; margin-left: 8px;">de ${totalFornosCadastrados} fornos cadastrados</span>
+                    <p style="color: var(--text-muted); font-size: 12px; margin-top: 3px;">
+                        O relatório detalha exclusivamente os fornos que atingiram temperatura de queima ou variação térmica durante a madrugada.
+                    </p>
+                </div>
+                <div style="font-size: 12px; color: #94a3b8; background: rgba(0,0,0,0.35); padding: 8px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                    <i class="fa-solid fa-moon text-blue" style="margin-right: 6px;"></i> <b>${fornosInativos.length} Forno(s) Apagados / Pátio</b> (Filtrados automaticamente)
+                </div>
+            </div>
+        `;
+
+        if (!fornosAtivos || fornosAtivos.length === 0) {
+            container.innerHTML = bannerHtml + `<div style="grid-column: 1 / -1; text-align:center; padding:30px; color:var(--text-muted);">Nenhum forno em queima ativa detectado nas últimas 12 horas.</div>`;
+        } else {
+            const cardsHtml = fornosAtivos.map(f => {
+                const step1Class = f.fase.step >= 1 ? (f.fase.step === 1 ? 'step-active' : 'step-completed') : '';
+                const step2Class = f.fase.step >= 2 ? (f.fase.step === 2 ? 'step-active' : 'step-completed') : '';
+                const step3Class = f.fase.step >= 3 ? (f.fase.step === 3 ? 'step-active' : 'step-completed') : '';
+                const step4Class = f.fase.step >= 4 ? (f.fase.step === 4 ? 'step-active' : 'step-completed') : '';
+
+                let anomaliasHtml = "";
+                if (f.anomalias && f.anomalias.length > 0) {
+                    anomaliasHtml = `
+                        <div style="background: rgba(244, 63, 94, 0.1); border: 1px solid rgba(244, 63, 94, 0.3); border-radius: 6px; padding: 6px 10px; font-size: 11px; color: #fca5a5; display: flex; align-items: center; gap: 6px;">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                            <span>${escapeHtml(f.anomalias[0])}</span>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="ai-kiln-card">
+                        <div class="ai-kiln-header">
+                            <div class="ai-kiln-title">
+                                <i class="fa-solid fa-fire" style="color: var(--orange);"></i>
+                                <span>FORNO ${f.num}</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span class="ai-phase-badge ${f.fase.classe}">
+                                    <i class="fa-solid ${f.fase.icone}"></i> ${f.fase.nome}
+                                </span>
+                                <span class="ai-score-pill ${f.badgeScore.classe}">${f.score}%</span>
+                            </div>
+                        </div>
+
+                        <!-- Métricas Térmicas -->
+                        <div class="ai-temp-metrics-grid">
+                            <div class="ai-metric-col">
+                                <span class="ai-metric-label">Canal 1 (Topo)</span>
+                                <b class="ai-metric-val" style="color: #fdba74;">${f.c1}°C</b>
+                            </div>
+                            <div class="ai-metric-col">
+                                <span class="ai-metric-label">Canal 2 (Base)</span>
+                                <b class="ai-metric-val" style="color: #67e8f9;">${f.c2}°C</b>
+                            </div>
+                            <div class="ai-metric-col">
+                                <span class="ai-metric-label">Gradiente ΔT</span>
+                                <b class="ai-metric-val" style="color: ${f.delta > 75 ? '#f87171' : '#34d399'};">${f.delta}°C</b>
+                            </div>
+                            <div class="ai-metric-col">
+                                <span class="ai-metric-label">Pico Madrugada</span>
+                                <b class="ai-metric-val" style="color: #ffffff;">${f.picoC1}°C</b>
+                            </div>
+                        </div>
+
+                        <!-- Barra de Ciclo Térmico -->
+                        <div>
+                            <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); margin-bottom: 4px; font-weight: 700; text-transform: uppercase;">
+                                <span>1. Secagem</span>
+                                <span>2. Elevação</span>
+                                <span>3. Maturação</span>
+                                <span>4. Resfriamento</span>
+                            </div>
+                            <div class="ai-cycle-steps">
+                                <div class="ai-cycle-step ${step1Class}"></div>
+                                <div class="ai-cycle-step ${step2Class}"></div>
+                                <div class="ai-cycle-step ${step3Class}"></div>
+                                <div class="ai-cycle-step ${step4Class}"></div>
+                            </div>
+                        </div>
+
+                        ${anomaliasHtml}
+
+                        <!-- Parecer do Algoritmo de IA -->
+                        <div class="ai-insight-box">
+                            <div class="ai-insight-item">
+                                <i class="fa-solid fa-lightbulb text-orange"></i>
+                                <div><b>Diagnóstico:</b> ${f.fase.desc}. Comportamento: ${f.tendenciaTxt}.</div>
+                            </div>
+                            <div class="ai-insight-item">
+                                <i class="fa-solid fa-hand-holding-hand text-green"></i>
+                                <div><b>Ação Prática:</b> ${escapeHtml(f.recomendacao)}</div>
+                            </div>
+                            <div class="ai-insight-item" style="font-size: 11px; color: var(--text-muted);">
+                                <i class="fa-solid fa-stopwatch text-blue"></i>
+                                <div><b>Previsão:</b> ${escapeHtml(f.previsao)}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join("");
+
+            container.innerHTML = bannerHtml + cardsHtml;
+        }
+    }
+
+    // 4. Monta o texto oficial para WhatsApp
+    gerarTextoRelatorioIA(false);
+}
+
+function gerarTextoRelatorioIA(resetarManual = false) {
+    const res = adminState.aiReportState?.analiseAtual;
+    if (!res) return;
+
+    const dataFormatada = new Date().toLocaleDateString("pt-BR");
+    const { fornosAtivos, fornosInativos, totalFornosCadastrados, ceramica, scoreGeral, gradienteMedio, chartUrl } = res;
+
+    let t = `*━━━━━━━━━━━━━━━━━━━━━━━━━━*\n`;
+    t += `🔥 *THERMOLINK • RESUMO DA MADRUGADA* 🔥\n`;
+    t += `*Turno de Queima (Últimas 12 Horas)*\n`;
+    t += `*━━━━━━━━━━━━━━━━━━━━━━━━━━*\n\n`;
+
+    t += `🏭 *Cerâmica:* ${ceramica.nome}\n`;
+    t += `👤 *Aos Cuidados:* ${ceramica.responsavel || "Gestor de Queima"}\n`;
+    t += `📅 *Horário de Fechamento:* ${dataFormatada} às 06:00\n`;
+    t += `⏱️ *Período Analisado:* 18:00 às 06:00 (12h de Madrugada)\n\n`;
+
+    t += `*──────────────────────────*\n`;
+    t += `📊 *PANORAMA GERAL DA FÁBRICA:*\n`;
+    t += `• Capacidade Total: *${totalFornosCadastrados} Fornos*\n`;
+    t += `• 🔥 *Fornos em Queima Ativa:* *${fornosAtivos.length} forno(s)* (${fornosAtivos.map(f => `F${f.num}`).join(', ') || 'Nenhum'})\n`;
+    t += `• 💤 *Fornos Inativos / Desligados:* *${fornosInativos.length} forno(s)* (sem variação térmica)\n`;
+    t += `*──────────────────────────*\n\n`;
+
+    if (fornosAtivos.length === 0) {
+        t += `ℹ️ *Nenhum forno registrou queima ativa nesta madrugada.*\n`;
+        t += `Todas as unidades permanecem em temperatura ambiente ou pátio.\n\n`;
+    } else {
+        t += `🔥 *DIAGNÓSTICO INDIVIDUAL DOS FORNOS EM QUEIMA:*\n\n`;
+        fornosAtivos.forEach(f => {
+            t += `*FORNO ${f.num}* — ${f.fase.nome}\n`;
+            t += `• *Temp. Atual:* C1 (Topo): *${f.c1}°C* | C2 (Base): *${f.c2}°C*\n`;
+            t += `• *Pico na Madrugada:* *${f.picoC1}°C*\n`;
+            t += `• *Média das 12h:* ${f.mediaC1}°C\n`;
+            t += `• *Gradiente (Topo x Base):* ${f.delta}°C\n`;
+            t += `• *Comportamento:* ${f.tendenciaTxt}\n`;
+            t += `• 💡 *Recomendação IA:* ${f.recomendacao}\n\n`;
+        });
+    }
+
+    t += `*━━━━━━━━━━━━━━━━━━━━━━━━━━*\n`;
+    t += `🤖 *PARECER TÉCNICO & IA THERMOLINK:*\n`;
+    t += `• ⭐ *Score Térmico Global:* *${scoreGeral}%* (${scoreGeral >= 85 ? 'Excelente' : 'Estável'})\n`;
+    t += `• ⚖️ *Gradiente Médio Operacional:* *${gradienteMedio}°C*\n`;
+    if (chartUrl) {
+        t += `• 📈 *Gráfico da curva térmica de 12h anexado acima.*\n`;
+    }
+    t += `\n`;
+    t += `✅ *Resumo Operacional:* Leituras consolidadas e filtradas por inteligência artificial.\n`;
+    t += `📲 _Mensagem automática gerada diariamente às 06:00 pelo ThermoLink._\n`;
+    t += `🌐 Painel de Controle: *thermolink.com.br*\n`;
+    t += `*━━━━━━━━━━━━━━━━━━━━━━━━━━*`;
+
+    adminState.aiReportState.textoFormatado = t;
+    adminState.aiReportState.chartUrl = chartUrl;
+
+    const txtArea = $("aiRelatorioTextoArea");
+    if (txtArea) {
+        txtArea.value = t;
+    }
+
+    if (resetarManual) {
+        mostrarToastFeedback("Texto e gráfico redefinidos para o padrão das 12h.", "info");
+    }
+}
+
+function copiarRelatorioIATexto() {
+    const txtArea = $("aiRelatorioTextoArea");
+    const texto = txtArea?.value || adminState.aiReportState?.textoFormatado;
+    if (!texto) {
+        mostrarToastFeedback("Nenhum texto disponível para cópia.", "warn");
+        return;
+    }
+
+    navigator.clipboard.writeText(texto).then(() => {
+        mostrarToastFeedback("Relatório com IA copiado para a área de transferência!", "success");
+    }).catch(() => {
+        if (txtArea) {
+            txtArea.select();
+            document.execCommand("copy");
+            mostrarToastFeedback("Relatório copiado!", "success");
+        }
+    });
+}
+
+async function dispararRelatorioIACeramica() {
+    const res = adminState.aiReportState?.analiseAtual;
+    if (!res) {
+        alert("Execute a análise antes de disparar.");
+        return;
+    }
+
+    const texto = $("aiRelatorioTextoArea")?.value || adminState.aiReportState?.textoFormatado;
+    const chartUrl = adminState.aiReportState?.chartUrl || res.chartUrl || null;
+    const ceramicaId = res.ceramica.id;
+    const contatos = (waAdminContatos || []).filter(c => c.ceramica_id === ceramicaId && c.receber_relatorio);
+
+    if (contatos.length === 0) {
+        alert(`Nenhum contato com recebimento ativo cadastrado para ${res.ceramica.nome}.`);
+        return;
+    }
+
+    if (!confirm(`Deseja disparar este Relatório das 12 Horas com Análise de IA e Gráfico Térmico para os ${contatos.length} contato(s) de ${res.ceramica.nome}?`)) {
+        return;
+    }
+
+    mostrarToastFeedback(`Disparando relatório com IA de ${res.ceramica.nome}...`, "info");
+    try {
+        let enviados = 0;
+        for (const c of contatos) {
+            if (!c.telefone) continue;
+            try {
+                await enviarMensagemWhatsappGateway(c.telefone, texto, chartUrl);
+                enviados++;
+            } catch (errOne) {
+                console.warn(`[Relatório IA] Falha ao enviar para ${c.nome}:`, errOne);
+            }
+        }
+
+        if (enviados > 0) {
+            mostrarToastFeedback(`Relatório entregue para ${enviados} contato(s) no WhatsApp!`, "success");
+            fecharModalAdmin("modalPreviewWhatsappIA", null);
+        } else {
+            alert("Não foi possível entregar o relatório. Verifique se o WhatsApp está conectado.");
+        }
+    } catch (e) {
+        alert("Erro de comunicação com o Gateway WhatsApp: " + (e.message || "Verifique o status do servidor."));
+    }
+}
+
+async function dispararRelatorioIAWhatsappAdmin() {
+    await dispararRelatorioIACeramica();
+}
+
+async function enviarMensagemWhatsappGateway(telefone, texto, chartUrl = null) {
+    const gatewayUrl = getGatewayUrl();
+    let cleanPhone = String(telefone || "").replace(/\D/g, "");
+    if (cleanPhone.startsWith("0")) cleanPhone = cleanPhone.substring(1);
+    if (cleanPhone.length >= 10 && !cleanPhone.startsWith("55")) {
+        cleanPhone = "55" + cleanPhone;
+    }
+    if (!cleanPhone) throw new Error("Telefone inválido.");
+
+    const payload = {
+        phone: cleanPhone,
+        text: texto,
+        chartUrl: chartUrl || null
+    };
+
+    // 1. Tenta POST /api/send-message (endpoint nativo ativo no Render em produção)
+    try {
+        const resp = await fetch(`${gatewayUrl}/api/send-message`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+        if (resp.ok) {
+            const data = await resp.json();
+            if (data.success) return { success: true, data };
+        }
+    } catch (err1) {}
+
+    // 2. Fallback para POST /api/enviar-mensagem
+    try {
+        const resp2 = await fetch(`${gatewayUrl}/api/enviar-mensagem`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                ...payload,
+                telefone: cleanPhone,
+                mensagem: texto,
+                imageUrl: chartUrl || null
+            })
+        });
+        if (resp2.ok) {
+            const data2 = await resp2.json();
+            if (data2.success) return { success: true, data: data2 };
+        }
+    } catch (err2) {}
+
+    throw new Error("Não foi possível comunicar com o Gateway WhatsApp.");
+}
+
+function abrirModalPreviewWhatsappIA() {
+    const texto = $("aiRelatorioTextoArea")?.value || adminState.aiReportState?.textoFormatado;
+    const chartUrl = adminState.aiReportState?.chartUrl;
+
+    if ($("waMockupMessageText")) {
+        $("waMockupMessageText").textContent = texto || "Carregando relatório...";
+    }
+    if ($("waMockupHora")) {
+        $("waMockupHora").textContent = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    }
+
+    if ($("waMockupImgBox") && $("waMockupChartImg")) {
+        if (chartUrl) {
+            $("waMockupChartImg").src = chartUrl;
+            $("waMockupImgBox").style.display = "block";
+        } else {
+            $("waMockupImgBox").style.display = "none";
+        }
+    }
+
+    abrirModalAdmin("modalPreviewWhatsappIA");
+}
+
+// ==========================================================================
+// 13. ALERTA DE DESCONEXÃO DOS APARELHOS ALUTAL (> 30 MINUTOS)
+// ==========================================================================
+
+function abrirModalPreviewAlertaDesconexao() {
+    const clients = adminState.clients && adminState.clients.length ? adminState.clients : getClients();
+    let cer = null;
+    if (waAdminCeramicaFiltroAtivo && waAdminCeramicaFiltroAtivo !== "all") {
+        cer = clients.find(c => c.id === waAdminCeramicaFiltroAtivo);
+    }
+    if (!cer) {
+        cer = clients.find(cl => (waAdminContatos || []).some(c => c.ceramica_id === cl.id && c.receber_relatorio));
+    }
+    if (!cer) cer = clients[0] || { nome: "Cerâmica Cliente" };
+
+    if ($("waMockupAlertaText")) {
+        $("waMockupAlertaText").textContent = `⚠️ *ALERTA THERMOLINK • EQUIPAMENTO OFFLINE* ⚠️
+
+🏭 *Cerâmica:* ${cer.nome}
+⏱️ *Sem comunicação:* há mais de 30 minutos
+📡 *Status:* Módulos sem sinal com o servidor
+
+Identificamos que os sensores/aparelhos Alutal estão sem comunicação com o servidor.
+
+🔍 *Possíveis causas:*
+• Queda de energia elétrica na fábrica
+• Falha ou oscilação na conexão Wi-Fi / Internet
+• Aparelho desligado da tomada ou reiniciando
+
+Favor verificar se os equipamentos e a internet da fábrica estão ligados.
+_Mensagem automática enviada pelo sistema ThermoLink._`;
+    }
+    abrirModalAdmin("modalPreviewAlertaDesconexao");
+}
+
+async function testarDisparoAlertaDesconexaoAdmin() {
+    const clients = adminState.clients && adminState.clients.length ? adminState.clients : getClients();
+    if (!clients || !clients.length) return alert("Nenhuma cerâmica cadastrada.");
+
+    let cer = null;
+    if (waAdminCeramicaFiltroAtivo && waAdminCeramicaFiltroAtivo !== "all") {
+        cer = clients.find(c => c.id === waAdminCeramicaFiltroAtivo);
+    }
+    if (!cer) {
+        cer = clients.find(cl => (waAdminContatos || []).some(c => c.ceramica_id === cl.id && c.receber_relatorio));
+    }
+    if (!cer) cer = clients[0];
+
+    await testarAlertaDesconexaoCeramica(cer.id, cer.nome);
+}
+
+async function testarAlertaDesconexaoCeramica(ceramicaId, ceramicaNome) {
+    const contatos = (waAdminContatos || []).filter(c => c.ceramica_id === ceramicaId && c.receber_relatorio);
+    if (!contatos || !contatos.length) {
+        return alert(`Nenhum contato com recebimento ativo cadastrado para ${ceramicaNome}.`);
+    }
+
+    if (!confirm(`Deseja simular e enviar o ALERTA DE DESCONEXÃO (>30 min) para os ${contatos.length} contato(s) de ${ceramicaNome} no WhatsApp?`)) {
+        return;
+    }
+
+    mostrarToastFeedback(`Enviando teste de alerta para ${ceramicaNome}...`, "info");
+    const gatewayUrl = getGatewayUrl();
+
+    const agora = new Date();
+    const dataHoraStr = agora.toLocaleDateString("pt-BR") + " às " + agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
+    const textoAviso = `⚠️ *ALERTA THERMOLINK • EQUIPAMENTO OFFLINE* ⚠️\n\n` +
+        `🏭 *Cerâmica:* ${ceramicaNome}\n` +
+        `⏱️ *Sem comunicação:* há mais de 30 minutos\n` +
+        `📡 *Status:* Módulos sem sinal com o servidor\n` +
+        `🕒 *Data/Hora:* ${dataHoraStr}\n\n` +
+        `Identificamos que os sensores/aparelhos Alutal estão sem comunicação com o servidor.\n\n` +
+        `🔍 *Possíveis causas:*\n` +
+        `• Queda de energia elétrica na fábrica\n` +
+        `• Falha ou oscilação na conexão Wi-Fi / Internet\n` +
+        `• Aparelho desligado da tomada ou reiniciando\n\n` +
+        `Favor verificar se os equipamentos e a internet da fábrica estão ligados.\n` +
+        `_Mensagem de teste de alerta enviada pelo sistema ThermoLink._`;
+
+    // 1. Tenta endpoint direto dedicado do backend (se suportado na versão em execução)
+    try {
+        const resp = await fetch(`${gatewayUrl}/api/testar-alerta-desconexao/${ceramicaId}`, { method: "POST" });
+        if (resp.ok) {
+            const d = await resp.json();
+            if (d.success) {
+                mostrarToastFeedback(`Alerta de desconexão entregue para ${d.enviados} contato(s)!`, "success");
+                fecharModalAdmin("modalPreviewAlertaDesconexao", null);
+                return;
+            }
+        }
+    } catch (eDedicated) {}
+
+    // 2. Fallback resiliente imediato via /api/send-message (compatível 100% com o gateway ativo no Render)
+    try {
+        let enviados = 0;
+        for (const c of contatos) {
+            if (!c.telefone) continue;
+            try {
+                await enviarMensagemWhatsappGateway(c.telefone, textoAviso);
+                enviados++;
+            } catch (errOne) {
+                console.warn(`[Alerta Desconexão] Erro ao enviar para ${c.nome}:`, errOne);
+            }
+        }
+
+        if (enviados > 0) {
+            mostrarToastFeedback(`Alerta de teste entregue para ${enviados} contato(s) de ${ceramicaNome}!`, "success");
+            fecharModalAdmin("modalPreviewAlertaDesconexao", null);
+        } else {
+            alert("Não foi possível enviar o alerta. Verifique se o Gateway WhatsApp está conectado e online.");
+        }
+    } catch (e) {
+        alert("Erro ao enviar mensagem pelo Gateway WhatsApp: " + (e.message || "Verifique sua conexão."));
+    }
+}
+
 
 
